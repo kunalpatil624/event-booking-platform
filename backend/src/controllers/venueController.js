@@ -73,6 +73,17 @@ exports.getVenues = async (req, res) => {
     }
 };
 
+// @desc    Get vendor venues
+// @route   GET /api/venues/my-venues
+exports.getMyVenues = async (req, res) => {
+    try {
+        const venues = await Venue.find({ owner: req.user._id }).sort({ createdAt: -1 });
+        res.status(200).json({ success: true, count: venues.length, venues });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 // @desc    Get single venue
 // @route   GET /api/venues/:id
 exports.getVenue = async (req, res) => {
@@ -99,11 +110,21 @@ exports.getVenue = async (req, res) => {
 // @route   POST /api/venues
 exports.createVenue = async (req, res) => {
     try {
+        console.log('Creating venue with body:', JSON.stringify(req.body, null, 2));
+        console.log('User ID:', req.user._id);
         req.body.owner = req.user._id;
         const venue = await Venue.create(req.body);
         res.status(201).json({ success: true, venue });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error('Create Venue Error:', error);
+        if (error.code === 11000) {
+            return res.status(400).json({ success: false, message: 'Venue with this name already exists' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ success: false, message: messages.join(', ') });
+        }
+        res.status(500).json({ success: false, message: error.message, stack: error.stack });
     }
 };
 

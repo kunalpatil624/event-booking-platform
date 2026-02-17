@@ -10,6 +10,7 @@ const authRoutes = require('./routes/auth');
 const venueRoutes = require('./routes/venues');
 const bookingRoutes = require('./routes/bookings');
 const reviewRoutes = require('./routes/reviews');
+const uploadRoutes = require('./routes/upload');
 
 const app = express();
 
@@ -17,22 +18,11 @@ const app = express();
 connectDB();
 
 // Middleware
-const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3005',
-    process.env.CLIENT_URL,
-].filter(Boolean);
-
 app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:3005'],
     credentials: true
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -42,6 +32,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/venues', venueRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
