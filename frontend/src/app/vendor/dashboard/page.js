@@ -9,7 +9,6 @@ import {
     HiTrendingUp, HiEye, HiBell, HiMenu, HiX,
     HiCheck, HiClock, HiXCircle, HiPhotograph, HiClipboardList
 } from 'react-icons/hi';
-import styles from './vendorDashboard.module.css';
 
 const demoStats = [
     { label: 'Total Bookings', value: '86', icon: <HiCalendar />, change: '+12 this month', color: '#10B981' },
@@ -56,10 +55,7 @@ export default function VendorDashboard() {
     useEffect(() => {
         const token = localStorage.getItem('vendorToken');
         const user = localStorage.getItem('vendorUser');
-        if (!token) {
-            router.push('/vendor');
-            return;
-        }
+        if (!token) { router.push('/vendor'); return; }
         if (user) setVendorUser(JSON.parse(user));
     }, [router]);
 
@@ -69,190 +65,107 @@ export default function VendorDashboard() {
         router.push('/vendor');
     };
 
-    const getStatusStyle = (status) => {
-        if (status === 'confirmed' || status === 'approved') return styles.statusConfirmed;
-        if (status === 'pending') return styles.statusPending;
-        if (status === 'cancelled' || status === 'rejected') return styles.statusCancelled;
-        return '';
-    };
+    const statusCls = (s) => s === 'confirmed' || s === 'approved' ? 'bg-accent-emerald/15 text-accent-emerald border-accent-emerald/20' : s === 'pending' ? 'bg-accent-gold/15 text-accent-gold border-accent-gold/20' : 'bg-accent/15 text-accent border-accent/20';
 
     return (
-        <div className={styles.layout}>
+        <div className="flex min-h-screen bg-bg-primary">
             {/* Sidebar */}
-            <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`}>
-                <div className={styles.sidebarHeader}>
-                    <Link href="/" className={styles.logo}>
-                        Event<span>Book</span>
-                    </Link>
-                    <span className={styles.vendorBadge}>Vendor</span>
-                    <button className={styles.closeSidebar} onClick={() => setSidebarOpen(false)}>
-                        <HiX />
-                    </button>
+            <aside className={`fixed top-0 left-0 h-full w-[260px] bg-bg-secondary border-r border-border-default flex flex-col z-50 transition-transform duration-300 max-lg:${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+                <div className="p-5 pb-4 border-b border-border-default flex items-center justify-between">
+                    <Link href="/" className="text-xl font-extrabold text-white">Event<span className="bg-gradient-to-r from-accent-emerald to-teal-500 bg-clip-text text-transparent">Book</span></Link>
+                    <span className="px-2.5 py-0.5 bg-accent-emerald/15 text-accent-emerald text-[0.65rem] font-bold rounded-full uppercase tracking-wider">Vendor</span>
+                    <button className="lg:hidden text-text-muted text-xl" onClick={() => setSidebarOpen(false)}><HiX /></button>
                 </div>
-
-                <nav className={styles.nav}>
+                <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
                     {navItems.map(item => (
-                        <button
-                            key={item.id}
-                            className={`${styles.navItem} ${activeNav === item.id ? styles.activeNavItem : ''}`}
-                            onClick={() => { setActiveNav(item.id); setSidebarOpen(false); }}
-                        >
-                            {item.icon}
-                            <span>{item.label}</span>
+                        <button key={item.id} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 border-none cursor-pointer ${activeNav === item.id ? 'bg-accent-emerald/15 text-accent-emerald' : 'text-text-secondary hover:bg-white/5 hover:text-white bg-transparent'}`} onClick={() => { setActiveNav(item.id); setSidebarOpen(false); }}>
+                            {item.icon}<span>{item.label}</span>
                         </button>
                     ))}
                 </nav>
-
-                <div className={styles.sidebarFooter}>
-                    <div className={styles.userInfo}>
-                        <div className={styles.userAvatar}>
-                            <HiOfficeBuilding />
-                        </div>
-                        <div>
-                            <p className={styles.userName}>{vendorUser?.name || 'Venue Owner'}</p>
-                            <p className={styles.userRole}>Venue Partner</p>
-                        </div>
+                <div className="p-4 border-t border-border-default">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="w-9 h-9 flex items-center justify-center rounded-full bg-accent-emerald/15 text-accent-emerald text-lg"><HiOfficeBuilding /></div>
+                        <div><p className="text-sm font-medium text-white">{vendorUser?.name || 'Venue Owner'}</p><p className="text-xs text-text-muted">Venue Partner</p></div>
                     </div>
-                    <button className={styles.logoutBtn} onClick={handleLogout}>
-                        <HiLogout /> Logout
-                    </button>
+                    <button className="w-full flex items-center justify-center gap-2 py-2 bg-white/5 border border-border-default rounded-xl text-text-secondary text-sm hover:text-accent hover:border-accent/20 transition-all duration-300" onClick={handleLogout}><HiLogout /> Logout</button>
                 </div>
             </aside>
 
-            {/* Main Content */}
-            <main className={styles.main}>
-                {/* Top Bar */}
-                <header className={styles.topbar}>
-                    <div className={styles.topbarLeft}>
-                        <button className={styles.menuBtn} onClick={() => setSidebarOpen(true)}>
-                            <HiMenu />
-                        </button>
-                        <h1 className={styles.pageTitle}>
-                            {navItems.find(n => n.id === activeNav)?.label || 'Dashboard'}
-                        </h1>
+            {/* Main */}
+            <main className="flex-1 lg:ml-[260px]">
+                <header className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-bg-primary/85 backdrop-blur-xl border-b border-border-default">
+                    <div className="flex items-center gap-3">
+                        <button className="lg:hidden text-white text-xl" onClick={() => setSidebarOpen(true)}><HiMenu /></button>
+                        <h1 className="text-xl font-bold text-white">{navItems.find(n => n.id === activeNav)?.label || 'Dashboard'}</h1>
                     </div>
-                    <div className={styles.topbarRight}>
-                        <button className={styles.addVenueBtn}>
-                            <HiPlus /> Add New Venue
-                        </button>
-                        <button className={styles.notifBtn}>
-                            <HiBell />
-                            <span className={styles.notifDot} />
-                        </button>
+                    <div className="flex items-center gap-3">
+                        <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent-emerald to-teal-500 text-white text-sm font-semibold rounded-xl hover:-translate-y-0.5 transition-all duration-300"><HiPlus /> Add New Venue</button>
+                        <button className="relative w-10 h-10 flex items-center justify-center bg-white/[0.06] border border-border-default rounded-xl text-text-secondary text-lg hover:text-white transition-all duration-300"><HiBell /><span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full" /></button>
                     </div>
                 </header>
 
-                <div className={styles.content}>
+                <div className="p-6 space-y-6">
                     {/* Stats */}
-                    <div className={styles.statsGrid}>
+                    <div className="grid grid-cols-4 max-lg:grid-cols-2 max-sm:grid-cols-1 gap-4">
                         {demoStats.map((stat, i) => (
-                            <motion.div
-                                key={i}
-                                className={styles.statCard}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.1 }}
-                            >
-                                <div className={styles.statIcon} style={{ '--stat-color': stat.color }}>
-                                    {stat.icon}
-                                </div>
-                                <div className={styles.statInfo}>
-                                    <span className={styles.statValue}>{stat.value}</span>
-                                    <span className={styles.statLabel}>{stat.label}</span>
-                                    <span className={styles.statChange}>
-                                        <HiTrendingUp /> {stat.change}
-                                    </span>
+                            <motion.div key={i} className="flex items-center gap-4 p-5 bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+                                <div className="w-12 h-12 flex items-center justify-center rounded-[14px] text-xl" style={{ background: `color-mix(in srgb, ${stat.color} 15%, transparent)`, color: stat.color }}>{stat.icon}</div>
+                                <div>
+                                    <span className="text-2xl font-extrabold text-white block">{stat.value}</span>
+                                    <span className="text-text-muted text-xs">{stat.label}</span>
+                                    <span className="flex items-center gap-1 text-accent-emerald text-[0.7rem] mt-0.5"><HiTrendingUp /> {stat.change}</span>
                                 </div>
                             </motion.div>
                         ))}
                     </div>
 
                     {/* My Venues */}
-                    <motion.div
-                        className={styles.panel}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                    >
-                        <div className={styles.panelHeader}>
-                            <h2>My Venues</h2>
-                            <button className={styles.addBtn}><HiPlus /> Add Venue</button>
+                    <motion.div className="bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                        <div className="flex items-center justify-between p-5 border-b border-border-default">
+                            <h2 className="text-lg font-semibold text-white">My Venues</h2>
+                            <button className="flex items-center gap-1.5 px-4 py-2 bg-white/[0.06] border border-border-default rounded-xl text-text-secondary text-sm font-medium hover:text-white transition-all duration-300"><HiPlus /> Add Venue</button>
                         </div>
-                        <div className={styles.venuesGrid}>
-                            {myVenues.map((venue) => (
-                                <div key={venue.id} className={styles.venueCard}>
-                                    <div className={styles.venueCardHeader}>
-                                        <div>
-                                            <h3>{venue.name}</h3>
-                                            <p>{venue.city} • {venue.area} • {venue.type}</p>
-                                        </div>
-                                        <span className={`${styles.statusBadge} ${getStatusStyle(venue.status)}`}>
-                                            {venue.status}
-                                        </span>
+                        <div className="p-5 grid gap-4">
+                            {myVenues.map(venue => (
+                                <div key={venue.id} className="p-5 bg-white/[0.02] border border-border-default rounded-xl">
+                                    <div className="flex items-start justify-between mb-3 max-sm:flex-col max-sm:gap-2">
+                                        <div><h3 className="text-base font-semibold text-white">{venue.name}</h3><p className="text-text-muted text-xs mt-0.5">{venue.city} • {venue.area} • {venue.type}</p></div>
+                                        <span className={`px-2.5 py-0.5 text-[0.65rem] font-bold rounded-full uppercase tracking-wider border capitalize ${statusCls(venue.status)}`}>{venue.status}</span>
                                     </div>
-                                    <div className={styles.venueStats}>
-                                        <div className={styles.venueStat}>
-                                            <span className={styles.venueStatValue}>{venue.bookings}</span>
-                                            <span className={styles.venueStatLabel}>Bookings</span>
-                                        </div>
-                                        <div className={styles.venueStat}>
-                                            <span className={styles.venueStatValue}>{venue.rating || '-'}</span>
-                                            <span className={styles.venueStatLabel}>Rating</span>
-                                        </div>
-                                        <div className={styles.venueStat}>
-                                            <span className={styles.venueStatValue}>{venue.revenue}</span>
-                                            <span className={styles.venueStatLabel}>Revenue</span>
-                                        </div>
-                                        <div className={styles.venueStat}>
-                                            <span className={styles.venueStatValue}>{venue.images}</span>
-                                            <span className={styles.venueStatLabel}>Photos</span>
-                                        </div>
+                                    <div className="grid grid-cols-4 max-sm:grid-cols-2 gap-3 mb-4">
+                                        {[{ v: venue.bookings, l: 'Bookings' }, { v: venue.rating || '-', l: 'Rating' }, { v: venue.revenue, l: 'Revenue' }, { v: venue.images, l: 'Photos' }].map(s => (
+                                            <div key={s.l} className="text-center p-2 bg-bg-secondary rounded-lg"><span className="block text-base font-bold text-white">{s.v}</span><span className="text-[0.65rem] text-text-muted">{s.l}</span></div>
+                                        ))}
                                     </div>
-                                    <div className={styles.venueActions}>
-                                        <button className={styles.editBtn}><HiPencil /> Edit</button>
-                                        <button className={styles.photosBtn}><HiPhotograph /> Photos</button>
-                                        <button className={styles.viewBookingsBtn}><HiCalendar /> Bookings</button>
+                                    <div className="flex gap-2 flex-wrap">
+                                        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-border-default rounded-lg text-text-secondary text-xs font-medium hover:text-white hover:border-border-light transition-all duration-300"><HiPencil /> Edit</button>
+                                        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-border-default rounded-lg text-text-secondary text-xs font-medium hover:text-white hover:border-border-light transition-all duration-300"><HiPhotograph /> Photos</button>
+                                        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-border-default rounded-lg text-text-secondary text-xs font-medium hover:text-white hover:border-border-light transition-all duration-300"><HiCalendar /> Bookings</button>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </motion.div>
 
-                    <div className={styles.gridRow}>
+                    <div className="grid grid-cols-[1.5fr_1fr] max-lg:grid-cols-1 gap-6">
                         {/* Upcoming Bookings */}
-                        <motion.div
-                            className={styles.panel}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4 }}
-                        >
-                            <div className={styles.panelHeader}>
-                                <h2>Upcoming Bookings</h2>
-                                <span className={styles.countBadge}>{upcomingBookings.length}</span>
+                        <motion.div className="bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                            <div className="flex items-center justify-between p-5 border-b border-border-default">
+                                <h2 className="text-lg font-semibold text-white">Upcoming Bookings</h2>
+                                <span className="w-7 h-7 flex items-center justify-center bg-primary/15 text-primary-light text-xs font-bold rounded-full">{upcomingBookings.length}</span>
                             </div>
-                            <div className={styles.panelBody}>
-                                {upcomingBookings.map((booking) => (
-                                    <div key={booking.id} className={styles.bookingItem}>
-                                        <div className={styles.bookingTop}>
-                                            <div className={styles.bookingMain}>
-                                                <h4>{booking.customer}</h4>
-                                                <p>{booking.event} • {booking.venue}</p>
-                                                <p className={styles.bookingMeta}>
-                                                    📅 {booking.date} • 👥 {booking.guests} guests • 📦 {booking.package}
-                                                </p>
-                                            </div>
-                                            <div className={styles.bookingRight}>
-                                                <span className={styles.bookingAmount}>{booking.amount}</span>
-                                                <span className={styles.advancePaid}>Advance: {booking.advance}</span>
-                                                <span className={`${styles.statusBadge} ${getStatusStyle(booking.status)}`}>
-                                                    {booking.status}
-                                                </span>
-                                            </div>
+                            <div className="p-5 space-y-4 max-h-[500px] overflow-y-auto">
+                                {upcomingBookings.map(b => (
+                                    <div key={b.id} className="p-4 bg-white/[0.02] border border-border-default rounded-xl">
+                                        <div className="flex justify-between gap-3 mb-2 max-sm:flex-col">
+                                            <div><h4 className="text-sm font-semibold text-white">{b.customer}</h4><p className="text-text-muted text-xs mt-0.5">{b.event} • {b.venue}</p><p className="text-text-muted text-[0.7rem] mt-1">📅 {b.date} • 👥 {b.guests} guests • 📦 {b.package}</p></div>
+                                            <div className="text-right max-sm:text-left"><span className="block text-base font-bold text-white">{b.amount}</span><span className="text-text-muted text-[0.7rem]">Advance: {b.advance}</span><br /><span className={`inline-block mt-1 px-2 py-0.5 text-[0.6rem] font-bold rounded-full uppercase tracking-wider border capitalize ${statusCls(b.status)}`}>{b.status}</span></div>
                                         </div>
-                                        {booking.status === 'pending' && (
-                                            <div className={styles.bookingActions}>
-                                                <button className={styles.acceptBtn}><HiCheck /> Accept</button>
-                                                <button className={styles.declineBtn}><HiXCircle /> Decline</button>
+                                        {b.status === 'pending' && (
+                                            <div className="flex gap-2 mt-3 pt-3 border-t border-border-default">
+                                                <button className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all duration-300"><HiCheck /> Accept</button>
+                                                <button className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all duration-300"><HiXCircle /> Decline</button>
                                             </div>
                                         )}
                                     </div>
@@ -260,32 +173,20 @@ export default function VendorDashboard() {
                             </div>
                         </motion.div>
 
-                        {/* Recent Reviews */}
-                        <motion.div
-                            className={styles.panel}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.5 }}
-                        >
-                            <div className={styles.panelHeader}>
-                                <h2>Recent Reviews</h2>
-                            </div>
-                            <div className={styles.panelBody}>
-                                {recentReviews.map((review, i) => (
-                                    <div key={i} className={styles.reviewItem}>
-                                        <div className={styles.reviewHeader}>
-                                            <span className={styles.reviewAvatar}>{review.avatar}</span>
-                                            <div>
-                                                <h4>{review.user}</h4>
-                                                <p>{review.venue} • {review.date}</p>
+                        {/* Reviews */}
+                        <motion.div className="bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                            <div className="p-5 border-b border-border-default"><h2 className="text-lg font-semibold text-white">Recent Reviews</h2></div>
+                            <div className="p-5 space-y-4 max-h-[500px] overflow-y-auto">
+                                {recentReviews.map((r, i) => (
+                                    <div key={i} className="p-4 bg-white/[0.02] border border-border-default rounded-xl">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2.5">
+                                                <span className="w-9 h-9 flex items-center justify-center bg-primary/10 rounded-full text-lg">{r.avatar}</span>
+                                                <div><h4 className="text-sm font-semibold text-white">{r.user}</h4><p className="text-text-muted text-[0.7rem]">{r.venue} • {r.date}</p></div>
                                             </div>
-                                            <div className={styles.reviewStars}>
-                                                {[...Array(review.rating)].map((_, j) => (
-                                                    <HiStar key={j} />
-                                                ))}
-                                            </div>
+                                            <div className="flex gap-0.5 text-accent-gold">{[...Array(r.rating)].map((_, j) => <HiStar key={j} />)}</div>
                                         </div>
-                                        <p className={styles.reviewComment}>&ldquo;{review.comment}&rdquo;</p>
+                                        <p className="text-text-secondary text-sm italic">&ldquo;{r.comment}&rdquo;</p>
                                     </div>
                                 ))}
                             </div>
@@ -294,7 +195,7 @@ export default function VendorDashboard() {
                 </div>
             </main>
 
-            {sidebarOpen && <div className={styles.overlay} onClick={() => setSidebarOpen(false)} />}
+            {sidebarOpen && <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
         </div>
     );
 }

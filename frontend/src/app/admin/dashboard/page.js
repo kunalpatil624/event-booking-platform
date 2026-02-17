@@ -9,7 +9,6 @@ import {
     HiTrendingUp, HiEye, HiSearch, HiFilter, HiBell, HiMenu, HiX,
     HiStar, HiShieldCheck
 } from 'react-icons/hi';
-import styles from './adminDashboard.module.css';
 
 const demoStats = [
     { label: 'Total Venues', value: '128', icon: <HiOfficeBuilding />, change: '+12 this month', color: '#8B5CF6' },
@@ -58,10 +57,7 @@ export default function AdminDashboard() {
     useEffect(() => {
         const token = localStorage.getItem('adminToken');
         const user = localStorage.getItem('adminUser');
-        if (!token) {
-            router.push('/admin');
-            return;
-        }
+        if (!token) { router.push('/admin'); return; }
         if (user) setAdminUser(JSON.parse(user));
     }, [router]);
 
@@ -71,159 +67,94 @@ export default function AdminDashboard() {
         router.push('/admin');
     };
 
-    const getStatusStyle = (status) => {
-        if (status === 'confirmed') return styles.statusConfirmed;
-        if (status === 'pending') return styles.statusPending;
-        if (status === 'cancelled') return styles.statusCancelled;
-        return '';
-    };
+    const statusCls = (s) => s === 'confirmed' ? 'bg-accent-emerald/15 text-accent-emerald border-accent-emerald/20' : s === 'pending' ? 'bg-accent-gold/15 text-accent-gold border-accent-gold/20' : 'bg-accent/15 text-accent border-accent/20';
 
     return (
-        <div className={styles.layout}>
+        <div className="flex min-h-screen bg-bg-primary">
             {/* Sidebar */}
-            <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`}>
-                <div className={styles.sidebarHeader}>
-                    <Link href="/" className={styles.logo}>
-                        Event<span>Book</span>
-                    </Link>
-                    <span className={styles.adminBadge}>Admin</span>
-                    <button className={styles.closeSidebar} onClick={() => setSidebarOpen(false)}>
-                        <HiX />
-                    </button>
+            <aside className={`fixed top-0 left-0 h-full w-[260px] bg-bg-secondary border-r border-border-default flex flex-col z-50 transition-transform duration-300 max-lg:${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+                <div className="p-5 pb-4 border-b border-border-default flex items-center justify-between">
+                    <Link href="/" className="text-xl font-extrabold text-white">Event<span className="bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">Book</span></Link>
+                    <span className="px-2.5 py-0.5 bg-red-500/15 text-red-400 text-[0.65rem] font-bold rounded-full uppercase tracking-wider">Admin</span>
+                    <button className="lg:hidden text-text-muted text-xl" onClick={() => setSidebarOpen(false)}><HiX /></button>
                 </div>
-
-                <nav className={styles.nav}>
+                <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
                     {navItems.map(item => (
-                        <button
-                            key={item.id}
-                            className={`${styles.navItem} ${activeNav === item.id ? styles.activeNavItem : ''}`}
-                            onClick={() => { setActiveNav(item.id); setSidebarOpen(false); }}
-                        >
-                            {item.icon}
-                            <span>{item.label}</span>
+                        <button key={item.id} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 border-none cursor-pointer ${activeNav === item.id ? 'bg-red-500/15 text-red-400' : 'text-text-secondary hover:bg-white/5 hover:text-white bg-transparent'}`} onClick={() => { setActiveNav(item.id); setSidebarOpen(false); }}>
+                            {item.icon}<span>{item.label}</span>
                         </button>
                     ))}
                 </nav>
-
-                <div className={styles.sidebarFooter}>
-                    <div className={styles.userInfo}>
-                        <div className={styles.userAvatar}>
-                            <HiShieldCheck />
-                        </div>
-                        <div>
-                            <p className={styles.userName}>{adminUser?.name || 'Admin'}</p>
-                            <p className={styles.userRole}>Super Admin</p>
-                        </div>
+                <div className="p-4 border-t border-border-default">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="w-9 h-9 flex items-center justify-center rounded-full bg-red-500/15 text-red-400 text-lg"><HiShieldCheck /></div>
+                        <div><p className="text-sm font-medium text-white">{adminUser?.name || 'Admin'}</p><p className="text-xs text-text-muted">Super Admin</p></div>
                     </div>
-                    <button className={styles.logoutBtn} onClick={handleLogout}>
-                        <HiLogout /> Logout
-                    </button>
+                    <button className="w-full flex items-center justify-center gap-2 py-2 bg-white/5 border border-border-default rounded-xl text-text-secondary text-sm hover:text-accent hover:border-accent/20 transition-all duration-300" onClick={handleLogout}><HiLogout /> Logout</button>
                 </div>
             </aside>
 
-            {/* Main Content */}
-            <main className={styles.main}>
-                {/* Top Bar */}
-                <header className={styles.topbar}>
-                    <div className={styles.topbarLeft}>
-                        <button className={styles.menuBtn} onClick={() => setSidebarOpen(true)}>
-                            <HiMenu />
-                        </button>
-                        <h1 className={styles.pageTitle}>
-                            {navItems.find(n => n.id === activeNav)?.label || 'Dashboard'}
-                        </h1>
+            {/* Main */}
+            <main className="flex-1 lg:ml-[260px]">
+                <header className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-bg-primary/85 backdrop-blur-xl border-b border-border-default">
+                    <div className="flex items-center gap-3">
+                        <button className="lg:hidden text-white text-xl" onClick={() => setSidebarOpen(true)}><HiMenu /></button>
+                        <h1 className="text-xl font-bold text-white">{navItems.find(n => n.id === activeNav)?.label || 'Dashboard'}</h1>
                     </div>
-                    <div className={styles.topbarRight}>
-                        <div className={styles.searchBar}>
-                            <HiSearch />
-                            <input type="text" placeholder="Search..." />
+                    <div className="flex items-center gap-3">
+                        <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-bg-card border border-border-default rounded-xl">
+                            <HiSearch className="text-text-muted" />
+                            <input type="text" placeholder="Search..." className="bg-transparent border-none text-white text-sm outline-none placeholder:text-text-muted w-36" />
                         </div>
-                        <button className={styles.notifBtn}>
-                            <HiBell />
-                            <span className={styles.notifDot} />
-                        </button>
+                        <button className="relative w-10 h-10 flex items-center justify-center bg-white/[0.06] border border-border-default rounded-xl text-text-secondary text-lg hover:text-white transition-all duration-300"><HiBell /><span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full" /></button>
                     </div>
                 </header>
 
-                <div className={styles.content}>
-                    {/* Stats Grid */}
-                    <div className={styles.statsGrid}>
+                <div className="p-6 space-y-6">
+                    {/* Stats */}
+                    <div className="grid grid-cols-4 max-lg:grid-cols-2 max-sm:grid-cols-1 gap-4">
                         {demoStats.map((stat, i) => (
-                            <motion.div
-                                key={i}
-                                className={styles.statCard}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.1 }}
-                            >
-                                <div className={styles.statIcon} style={{ '--stat-color': stat.color }}>
-                                    {stat.icon}
-                                </div>
-                                <div className={styles.statInfo}>
-                                    <span className={styles.statValue}>{stat.value}</span>
-                                    <span className={styles.statLabel}>{stat.label}</span>
-                                    <span className={styles.statChange}>
-                                        <HiTrendingUp /> {stat.change}
-                                    </span>
+                            <motion.div key={i} className="flex items-center gap-4 p-5 bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+                                <div className="w-12 h-12 flex items-center justify-center rounded-[14px] text-xl" style={{ background: `color-mix(in srgb, ${stat.color} 15%, transparent)`, color: stat.color }}>{stat.icon}</div>
+                                <div>
+                                    <span className="text-2xl font-extrabold text-white block">{stat.value}</span>
+                                    <span className="text-text-muted text-xs">{stat.label}</span>
+                                    <span className="flex items-center gap-1 text-accent-emerald text-[0.7rem] mt-0.5"><HiTrendingUp /> {stat.change}</span>
                                 </div>
                             </motion.div>
                         ))}
                     </div>
 
-                    <div className={styles.gridRow}>
-                        {/* Pending Venue Approvals */}
-                        <motion.div
-                            className={styles.panel}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
-                        >
-                            <div className={styles.panelHeader}>
-                                <h2>Pending Venue Approvals</h2>
-                                <span className={styles.countBadge}>{pendingVenues.length}</span>
+                    <div className="grid grid-cols-[1.5fr_1fr] max-lg:grid-cols-1 gap-6">
+                        {/* Pending Approvals */}
+                        <motion.div className="bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                            <div className="flex items-center justify-between p-5 border-b border-border-default">
+                                <h2 className="text-lg font-semibold text-white">Pending Venue Approvals</h2>
+                                <span className="w-7 h-7 flex items-center justify-center bg-accent-gold/15 text-accent-gold text-xs font-bold rounded-full">{pendingVenues.length}</span>
                             </div>
-                            <div className={styles.panelBody}>
-                                {pendingVenues.map((venue, i) => (
-                                    <div key={venue.id} className={styles.approvalItem}>
-                                        <div className={styles.approvalInfo}>
-                                            <h4>{venue.name}</h4>
-                                            <p>{venue.city} • {venue.area} • {venue.type.replace('-', ' ')}</p>
-                                            <p className={styles.approvalMeta}>
-                                                By {venue.owner} • {venue.images} images • Submitted {venue.submitted}
-                                            </p>
-                                        </div>
-                                        <div className={styles.approvalActions}>
-                                            <button className={styles.viewBtn}><HiEye /> View</button>
-                                            <button className={styles.approveBtn}><HiCheckCircle /> Approve</button>
-                                            <button className={styles.rejectBtn}><HiXCircle /> Reject</button>
+                            <div className="p-5 space-y-4 max-h-[500px] overflow-y-auto">
+                                {pendingVenues.map(v => (
+                                    <div key={v.id} className="p-4 bg-white/[0.02] border border-border-default rounded-xl">
+                                        <div className="mb-3"><h4 className="text-sm font-semibold text-white">{v.name}</h4><p className="text-text-muted text-xs mt-0.5">{v.city} • {v.area} • {v.type.replace('-', ' ')}</p><p className="text-text-muted text-[0.7rem] mt-1">By {v.owner} • {v.images} images • Submitted {v.submitted}</p></div>
+                                        <div className="flex gap-2">
+                                            <button className="flex items-center gap-1 px-3 py-1.5 bg-white/5 border border-border-default rounded-lg text-text-secondary text-xs font-medium hover:text-white transition-all duration-300"><HiEye /> View</button>
+                                            <button className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all duration-300"><HiCheckCircle /> Approve</button>
+                                            <button className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all duration-300"><HiXCircle /> Reject</button>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </motion.div>
 
-                        {/* Top Performing Venues */}
-                        <motion.div
-                            className={styles.panel}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4 }}
-                        >
-                            <div className={styles.panelHeader}>
-                                <h2>Top Performing Venues</h2>
-                            </div>
-                            <div className={styles.panelBody}>
-                                {topVenues.map((venue, i) => (
-                                    <div key={i} className={styles.topVenueItem}>
-                                        <div className={styles.topRank}>#{i + 1}</div>
-                                        <div className={styles.topVenueInfo}>
-                                            <h4>{venue.name}</h4>
-                                            <p>{venue.city} • {venue.bookings} bookings</p>
-                                        </div>
-                                        <div className={styles.topStats}>
-                                            <span className={styles.topRevenue}>{venue.revenue}</span>
-                                            <span className={styles.topRating}><HiStar /> {venue.rating}</span>
-                                        </div>
+                        {/* Top Venues */}
+                        <motion.div className="bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                            <div className="p-5 border-b border-border-default"><h2 className="text-lg font-semibold text-white">Top Performing Venues</h2></div>
+                            <div className="p-5 space-y-4 max-h-[500px] overflow-y-auto">
+                                {topVenues.map((v, i) => (
+                                    <div key={i} className="flex items-center gap-3 p-3 bg-white/[0.02] border border-border-default rounded-xl">
+                                        <div className="w-8 h-8 flex items-center justify-center bg-primary/15 text-primary-light text-sm font-bold rounded-lg shrink-0">#{i + 1}</div>
+                                        <div className="flex-1 min-w-0"><h4 className="text-sm font-semibold text-white truncate">{v.name}</h4><p className="text-text-muted text-[0.7rem]">{v.city} • {v.bookings} bookings</p></div>
+                                        <div className="text-right shrink-0"><span className="block text-sm font-bold text-accent-emerald">{v.revenue}</span><span className="flex items-center gap-0.5 text-accent-gold text-xs justify-end"><HiStar /> {v.rating}</span></div>
                                     </div>
                                 ))}
                             </div>
@@ -231,43 +162,28 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* Recent Bookings Table */}
-                    <motion.div
-                        className={styles.panel}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 }}
-                    >
-                        <div className={styles.panelHeader}>
-                            <h2>Recent Bookings</h2>
-                            <button className={styles.viewAllBtn}>View All</button>
+                    <motion.div className="bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                        <div className="flex items-center justify-between p-5 border-b border-border-default">
+                            <h2 className="text-lg font-semibold text-white">Recent Bookings</h2>
+                            <button className="text-primary-light text-sm font-medium hover:text-white transition-colors">View All</button>
                         </div>
-                        <div className={styles.tableWrapper}>
-                            <table className={styles.table}>
-                                <thead>
-                                    <tr>
-                                        <th>Booking ID</th>
-                                        <th>Customer</th>
-                                        <th>Venue</th>
-                                        <th>City</th>
-                                        <th>Event Date</th>
-                                        <th>Amount</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead><tr className="border-b border-border-default">
+                                    {['Booking ID', 'Customer', 'Venue', 'City', 'Event Date', 'Amount', 'Status'].map(h => (
+                                        <th key={h} className="text-left px-5 py-3 text-[0.7rem] font-semibold text-text-muted uppercase tracking-wider">{h}</th>
+                                    ))}
+                                </tr></thead>
                                 <tbody>
-                                    {recentBookings.map((booking, i) => (
-                                        <tr key={i}>
-                                            <td className={styles.bookingId}>{booking.id}</td>
-                                            <td>{booking.user}</td>
-                                            <td>{booking.venue}</td>
-                                            <td>{booking.city}</td>
-                                            <td>{booking.date}</td>
-                                            <td className={styles.amount}>{booking.amount}</td>
-                                            <td>
-                                                <span className={`${styles.statusBadge} ${getStatusStyle(booking.status)}`}>
-                                                    {booking.status}
-                                                </span>
-                                            </td>
+                                    {recentBookings.map((b, i) => (
+                                        <tr key={i} className="border-b border-border-default last:border-none hover:bg-white/[0.02] transition-colors">
+                                            <td className="px-5 py-3.5 text-sm text-primary-light font-mono">{b.id}</td>
+                                            <td className="px-5 py-3.5 text-sm text-white">{b.user}</td>
+                                            <td className="px-5 py-3.5 text-sm text-text-secondary">{b.venue}</td>
+                                            <td className="px-5 py-3.5 text-sm text-text-secondary">{b.city}</td>
+                                            <td className="px-5 py-3.5 text-sm text-text-secondary">{b.date}</td>
+                                            <td className="px-5 py-3.5 text-sm text-white font-semibold">{b.amount}</td>
+                                            <td className="px-5 py-3.5"><span className={`px-2 py-0.5 text-[0.6rem] font-bold rounded-full uppercase tracking-wider border capitalize ${statusCls(b.status)}`}>{b.status}</span></td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -277,8 +193,7 @@ export default function AdminDashboard() {
                 </div>
             </main>
 
-            {/* Mobile Overlay */}
-            {sidebarOpen && <div className={styles.overlay} onClick={() => setSidebarOpen(false)} />}
+            {sidebarOpen && <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
         </div>
     );
 }

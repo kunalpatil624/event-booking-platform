@@ -6,7 +6,6 @@ import Navbar from '@/components/Navbar';
 import VenueCard from '@/components/VenueCard';
 import Footer from '@/components/Footer';
 import { HiFilter, HiX, HiSearch, HiAdjustments, HiSortDescending } from 'react-icons/hi';
-import styles from './venues.module.css';
 
 const allVenues = [
     { id: '1', name: 'Royal Palace Marriage Garden', city: 'Bhopal', area: 'MP Nagar', startingPrice: 150000, capacity: { min: 200, max: 2000 }, venueType: 'marriage-garden', occasions: ['wedding', 'reception', 'engagement'], rating: { average: 4.5, count: 128 }, featured: true, images: [{ url: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800', isMain: true }], amenities: { parking: true, ac: true, cateringAvailable: true, decorationAvailable: true } },
@@ -32,16 +31,8 @@ function VenueListingContent() {
     const searchParams = useSearchParams();
     const [showFilters, setShowFilters] = useState(false);
     const [filters, setFilters] = useState({
-        city: searchParams.get('city') || '',
-        venueType: searchParams.get('venueType') || '',
-        occasion: searchParams.get('occasion') || '',
-        minPrice: '',
-        maxPrice: '',
-        minCapacity: searchParams.get('minCapacity') || '',
-        parking: false,
-        ac: false,
-        catering: false,
-        decoration: false,
+        city: searchParams.get('city') || '', venueType: searchParams.get('venueType') || '', occasion: searchParams.get('occasion') || '',
+        minPrice: '', maxPrice: '', minCapacity: searchParams.get('minCapacity') || '', parking: false, ac: false, catering: false, decoration: false,
     });
     const [sort, setSort] = useState('popular');
     const [searchQuery, setSearchQuery] = useState('');
@@ -77,86 +68,85 @@ function VenueListingContent() {
     return (
         <>
             <Navbar />
-            <main className={styles.main}>
-                <div className="container">
-                    {/* Page Header */}
-                    <motion.div className={styles.pageHeader} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                        <h1 className={styles.pageTitle}>
+            <main className="pt-[100px] min-h-screen pb-20">
+                <div className="max-w-[1280px] mx-auto px-6">
+                    <motion.div className="mb-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                        <h1 className="font-display text-[clamp(1.75rem,3vw,2.5rem)] font-bold bg-gradient-to-br from-white to-text-secondary bg-clip-text text-transparent mb-2">
                             {searchParams.get('featured') === 'true' ? 'Featured Venues' : filters.city ? `Venues in ${filters.city}` : 'All Venues'}
                         </h1>
-                        <p className={styles.pageSubtitle}>{filteredVenues.length} venues found</p>
+                        <p className="text-text-secondary text-[0.95rem]">{filteredVenues.length} venues found</p>
                     </motion.div>
 
-                    {/* Search & Filter Bar */}
-                    <div className={styles.toolbar}>
-                        <div className={styles.searchBar}>
-                            <HiSearch className={styles.searchIcon} />
-                            <input type="text" placeholder="Search venues by name or city..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={styles.searchInput} />
+                    {/* Toolbar */}
+                    <div className="flex items-center gap-4 mb-6 flex-wrap max-md:flex-col max-md:items-stretch">
+                        <div className="flex-1 min-w-[250px] flex items-center gap-2.5 px-4 py-2.5 bg-bg-card border border-border-default rounded-xl transition-all duration-300 focus-within:border-primary focus-within:shadow-[0_0_0_3px_rgba(108,60,225,0.15)]">
+                            <HiSearch className="text-text-muted text-lg shrink-0" />
+                            <input type="text" placeholder="Search venues by name or city..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 bg-transparent border-none text-white text-sm outline-none placeholder:text-text-muted" />
                         </div>
-                        <div className={styles.toolbarActions}>
-                            <div className={styles.sortWrapper}>
+                        <div className="flex items-center gap-3 max-md:justify-between">
+                            <div className="flex items-center gap-2 px-3.5 py-2.5 bg-bg-card border border-border-default rounded-xl text-text-secondary text-sm">
                                 <HiSortDescending />
-                                <select value={sort} onChange={(e) => setSort(e.target.value)} className={styles.sortSelect}>
+                                <select value={sort} onChange={(e) => setSort(e.target.value)} className="bg-transparent border-none text-white text-sm cursor-pointer outline-none [&>option]:bg-bg-card">
                                     {sortOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
                             </div>
-                            <button className={styles.filterToggle} onClick={() => setShowFilters(!showFilters)}>
+                            <button className="flex items-center gap-2 px-[18px] py-2.5 bg-bg-card border border-border-default rounded-xl text-text-secondary text-sm font-medium cursor-pointer hover:border-primary hover:text-white transition-all duration-300" onClick={() => setShowFilters(!showFilters)}>
                                 <HiAdjustments /> Filters
                             </button>
                         </div>
                     </div>
 
-                    {/* Filters Panel */}
+                    {/* Filters */}
                     {showFilters && (
-                        <motion.div className={styles.filtersPanel} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                            <div className={styles.filtersGrid}>
-                                <div className={styles.filterGroup}>
-                                    <label>City</label>
-                                    <select value={filters.city} onChange={(e) => setFilters({ ...filters, city: e.target.value === 'All Cities' ? '' : e.target.value })}>
-                                        {cities.map(c => <option key={c} value={c === 'All Cities' ? '' : c}>{c}</option>)}
-                                    </select>
-                                </div>
-                                <div className={styles.filterGroup}>
-                                    <label>Venue Type</label>
-                                    <select value={filters.venueType} onChange={(e) => setFilters({ ...filters, venueType: e.target.value === 'All Types' ? '' : e.target.value })}>
-                                        {venueTypes.map(t => <option key={t} value={t === 'All Types' ? '' : t}>{t === 'All Types' ? t : t.replace('-', ' ')}</option>)}
-                                    </select>
-                                </div>
-                                <div className={styles.filterGroup}>
-                                    <label>Min Budget</label>
-                                    <input type="number" placeholder="₹ Min" value={filters.minPrice} onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })} />
-                                </div>
-                                <div className={styles.filterGroup}>
-                                    <label>Max Budget</label>
-                                    <input type="number" placeholder="₹ Max" value={filters.maxPrice} onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })} />
-                                </div>
-                                <div className={styles.filterGroup}>
-                                    <label>Min Guests</label>
-                                    <input type="number" placeholder="Guests" value={filters.minCapacity} onChange={(e) => setFilters({ ...filters, minCapacity: e.target.value })} />
-                                </div>
+                        <motion.div className="bg-bg-card border border-border-default rounded-2xl p-6 mb-6 overflow-hidden" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                            <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] max-md:grid-cols-2 gap-4 mb-4">
+                                {[
+                                    { label: 'City', type: 'select', value: filters.city, options: cities, onChange: (v) => setFilters({ ...filters, city: v === 'All Cities' ? '' : v }) },
+                                    { label: 'Venue Type', type: 'select', value: filters.venueType, options: venueTypes, onChange: (v) => setFilters({ ...filters, venueType: v === 'All Types' ? '' : v }) },
+                                ].map(f => (
+                                    <div key={f.label}>
+                                        <label className="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wide">{f.label}</label>
+                                        <select value={f.value} onChange={(e) => f.onChange(e.target.value)} className="w-full px-3 py-2.5 bg-bg-secondary border border-border-default rounded-lg text-white text-sm outline-none [&>option]:bg-bg-card [&>option]:capitalize">
+                                            {f.options.map(o => <option key={o} value={o === 'All Cities' || o === 'All Types' ? '' : o}>{o === 'All Types' ? o : o.replace('-', ' ')}</option>)}
+                                        </select>
+                                    </div>
+                                ))}
+                                {[
+                                    { label: 'Min Budget', placeholder: '₹ Min', value: filters.minPrice, key: 'minPrice' },
+                                    { label: 'Max Budget', placeholder: '₹ Max', value: filters.maxPrice, key: 'maxPrice' },
+                                    { label: 'Min Guests', placeholder: 'Guests', value: filters.minCapacity, key: 'minCapacity' },
+                                ].map(f => (
+                                    <div key={f.key}>
+                                        <label className="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wide">{f.label}</label>
+                                        <input type="number" placeholder={f.placeholder} value={f.value} onChange={(e) => setFilters({ ...filters, [f.key]: e.target.value })} className="w-full px-3 py-2.5 bg-bg-secondary border border-border-default rounded-lg text-white text-sm outline-none placeholder:text-text-muted" />
+                                    </div>
+                                ))}
                             </div>
-                            <div className={styles.amenityFilters}>
-                                <label className={styles.checkbox}><input type="checkbox" checked={filters.parking} onChange={(e) => setFilters({ ...filters, parking: e.target.checked })} /> Parking</label>
-                                <label className={styles.checkbox}><input type="checkbox" checked={filters.ac} onChange={(e) => setFilters({ ...filters, ac: e.target.checked })} /> AC</label>
-                                <label className={styles.checkbox}><input type="checkbox" checked={filters.catering} onChange={(e) => setFilters({ ...filters, catering: e.target.checked })} /> Catering</label>
-                                <label className={styles.checkbox}><input type="checkbox" checked={filters.decoration} onChange={(e) => setFilters({ ...filters, decoration: e.target.checked })} /> Decoration</label>
-                                <button className={styles.clearBtn} onClick={clearFilters}><HiX /> Clear All</button>
+                            <div className="flex items-center gap-5 flex-wrap pt-4 border-t border-border-default">
+                                {['parking', 'ac', 'catering', 'decoration'].map(key => (
+                                    <label key={key} className="flex items-center gap-1.5 text-text-secondary text-sm cursor-pointer hover:text-white transition-all duration-300">
+                                        <input type="checkbox" checked={filters[key]} onChange={(e) => setFilters({ ...filters, [key]: e.target.checked })} className="w-4 h-4 accent-primary cursor-pointer" /> {key.charAt(0).toUpperCase() + key.slice(1)}
+                                    </label>
+                                ))}
+                                <button className="flex items-center gap-1 px-3.5 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-medium ml-auto hover:bg-accent/20 transition-all duration-300" onClick={clearFilters}>
+                                    <HiX /> Clear All
+                                </button>
                             </div>
                         </motion.div>
                     )}
 
-                    {/* Results Grid */}
+                    {/* Results */}
                     {filteredVenues.length > 0 ? (
-                        <div className="grid-venues">
+                        <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] max-md:grid-cols-1 gap-6">
                             {filteredVenues.map((venue, i) => (
                                 <VenueCard key={venue.id} venue={venue} index={i} />
                             ))}
                         </div>
                     ) : (
-                        <div className={styles.noResults}>
-                            <h3>No venues found</h3>
-                            <p>Try adjusting your filters or search query</p>
-                            <button className="btn btn-primary" onClick={clearFilters}>Clear Filters</button>
+                        <div className="text-center py-20">
+                            <h3 className="text-2xl font-bold text-white mb-2">No venues found</h3>
+                            <p className="text-text-secondary mb-6">Try adjusting your filters or search query</p>
+                            <button className="inline-flex items-center gap-2 px-7 py-3 text-base font-semibold rounded-xl bg-gradient-to-r from-primary to-primary-light text-white shadow-[0_4px_15px_rgba(108,60,225,0.4)]" onClick={clearFilters}>Clear Filters</button>
                         </div>
                     )}
                 </div>
@@ -168,7 +158,7 @@ function VenueListingContent() {
 
 export default function VenuesPage() {
     return (
-        <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }} />}>
+        <Suspense fallback={<div className="min-h-screen bg-bg-primary" />}>
             <VenueListingContent />
         </Suspense>
     );
