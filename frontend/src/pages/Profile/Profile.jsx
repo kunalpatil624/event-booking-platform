@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
 import { motion } from 'framer-motion';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import ProfileInfo from './components/ProfileInfo';
 import MyBookings from './components/MyBookings';
+import useAuth from '../../hooks/useAuth';
 import { HiUser, HiCalendar, HiHeart, HiCog, HiLogout, HiArrowLeft, HiShieldCheck } from 'react-icons/hi';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const sideNavItems = [
     { id: 'profile', label: 'My Profile', icon: <HiUser /> },
@@ -19,34 +17,12 @@ const sideNavItems = [
 
 export default function Profile() {
     const navigate = useNavigate();
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const { user, setUser, loading, logout } = useAuth();
     const [activeTab, setActiveTab] = useState('profile');
 
     useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const { data } = await axios.get(`${API_URL}/auth/me`, { withCredentials: true });
-                if (data.success) {
-                    setUser(data.user);
-                } else {
-                    navigate('/login');
-                }
-            } catch {
-                navigate('/login');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchUser();
-    }, [navigate]);
-
-    const handleLogout = async () => {
-        try {
-            await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
-        } catch { }
-        navigate('/');
-    };
+        if (!loading && !user) navigate('/login');
+    }, [loading, user, navigate]);
 
     const handleUserUpdate = (updatedUser) => {
         setUser(updatedUser);
@@ -119,8 +95,8 @@ export default function Profile() {
                                             key={item.id}
                                             onClick={() => setActiveTab(item.id)}
                                             className={`flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl text-sm font-medium text-left transition-all duration-300 border border-transparent ${activeTab === item.id
-                                                    ? 'bg-gradient-to-r from-primary/15 to-transparent text-white border-primary/20'
-                                                    : 'text-text-secondary hover:text-white hover:bg-white/[0.04]'
+                                                ? 'bg-gradient-to-r from-primary/15 to-transparent text-white border-primary/20'
+                                                : 'text-text-secondary hover:text-white hover:bg-white/[0.04]'
                                                 }`}
                                         >
                                             <span className={`text-lg ${activeTab === item.id ? 'text-primary-light' : ''}`}>{item.icon}</span>
@@ -131,7 +107,7 @@ export default function Profile() {
 
                                 <div className="pt-3 border-t border-border-default">
                                     <button
-                                        onClick={handleLogout}
+                                        onClick={logout}
                                         className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 transition-all duration-300"
                                     >
                                         <HiLogout className="text-lg" /> Logout

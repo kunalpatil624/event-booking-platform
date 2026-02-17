@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { motion } from 'framer-motion';
-import toast from 'react-hot-toast';
 import { HiUser, HiMail, HiPhone, HiCamera, HiPencil, HiCheck, HiX } from 'react-icons/hi';
+import useAuth from '../../../hooks/useAuth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 export default function ProfileInfo({ user, onUpdate }) {
+    const { updateProfile } = useAuth();
     const [editing, setEditing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -18,14 +18,13 @@ export default function ProfileInfo({ user, onUpdate }) {
     const handleSave = async () => {
         setLoading(true);
         try {
-            const { data } = await axios.put(`${API_URL}/auth/profile`, formData, { withCredentials: true });
-            if (data.success) {
-                toast.success('Profile updated successfully!');
+            const data = await updateProfile(formData);
+            if (data && data.success) {
                 onUpdate(data.user);
                 setEditing(false);
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to update profile');
+            // Error handled in hook
         } finally {
             setLoading(false);
         }

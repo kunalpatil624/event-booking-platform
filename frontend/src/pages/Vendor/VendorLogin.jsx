@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import useAuth from '../../hooks/useAuth';
 import { HiMail, HiLockClosed, HiEye, HiEyeOff, HiOfficeBuilding, HiArrowLeft, HiUser, HiPhone } from 'react-icons/hi';
 
 export default function VendorLogin() {
     const navigate = useNavigate();
+    const { login, register, logout } = useAuth();
     const [isLogin, setIsLogin] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -18,22 +19,19 @@ export default function VendorLogin() {
         setError('');
 
         try {
-            const endpoint = isLogin ? '/auth/login' : '/auth/register';
             const payload = isLogin
                 ? { email: formData.email, password: formData.password }
                 : { ...formData, role: 'vendor' };
 
-            const { data } = await axios.post(`${import.meta.env.VITE_API_URL}${endpoint}`, payload, { withCredentials: true });
+            const data = isLogin ? await login(payload) : await register(payload);
 
-            if (data.success) {
+            if (data && data.success) {
                 if (data.user.role !== 'vendor' && data.user.role !== 'admin') {
                     setError('Access denied. This account is not authorized as a vendor.');
-                    await axios.post(`${import.meta.env.VITE_API_URL}/auth/logout`);
+                    await logout();
                     setLoading(false);
                     return;
                 }
-                // Determine destination based on role (optional, but here we assume vendor dashboard)
-                localStorage.setItem('vendorUser', JSON.stringify(data.user));
                 navigate('/vendor/dashboard');
             }
         } catch (err) {

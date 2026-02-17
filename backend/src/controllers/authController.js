@@ -81,3 +81,46 @@ exports.updateProfile = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// @desc    Toggle venue in wishlist (like/unlike)
+// @route   PUT /api/auth/wishlist/:venueId
+exports.toggleWishlist = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        const venueId = req.params.venueId;
+        const index = user.wishlist.indexOf(venueId);
+
+        if (index > -1) {
+            user.wishlist.splice(index, 1);
+        } else {
+            user.wishlist.push(venueId);
+        }
+
+        await user.save({ validateBeforeSave: false });
+
+        const updatedUser = await User.findById(req.user._id).populate('wishlist');
+
+        res.status(200).json({
+            success: true,
+            isLiked: index === -1,
+            wishlist: updatedUser.wishlist,
+            message: index > -1 ? 'Removed from wishlist' : 'Added to wishlist'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Get user wishlist
+// @route   GET /api/auth/wishlist
+exports.getWishlist = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).populate({
+            path: 'wishlist',
+            populate: { path: 'owner', select: 'name' }
+        });
+        res.status(200).json({ success: true, venues: user.wishlist });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

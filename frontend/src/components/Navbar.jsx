@@ -1,40 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import useAuth from '../hooks/useAuth';
 import { HiMenu, HiX, HiUser, HiHeart, HiCalendar, HiSearch, HiOfficeBuilding, HiShieldCheck, HiLogout } from 'react-icons/hi';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-
 export default function Navbar() {
-    const navigate = useNavigate();
+    const { user, logout } = useAuth();
     const [scrolled, setScrolled] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
-    const [user, setUser] = useState(null);
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 50);
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
-
-    useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const { data } = await axios.get(`${API_URL}/auth/me`, { withCredentials: true });
-                if (data.success) setUser(data.user);
-            } catch { setUser(null); }
-        };
-        fetchUser();
-    }, []);
-
-    const handleLogout = async () => {
-        try {
-            await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
-        } catch { }
-        setUser(null);
-        navigate('/');
-    };
 
     return (
         <motion.nav
@@ -80,7 +59,7 @@ export default function Navbar() {
                     <Link to="/venues" className="w-10 h-10 flex items-center justify-center rounded-full text-text-secondary text-lg hover:text-white hover:bg-white/[0.08] transition-all duration-300">
                         <HiSearch />
                     </Link>
-                    <Link to="/" className="w-10 h-10 flex items-center justify-center rounded-full text-text-secondary text-lg hover:text-white hover:bg-white/[0.08] transition-all duration-300">
+                    <Link to="/wishlist" className="w-10 h-10 flex items-center justify-center rounded-full text-text-secondary text-lg hover:text-accent hover:bg-accent/10 transition-all duration-300" title="My Liked Venues">
                         <HiHeart />
                     </Link>
 
@@ -96,7 +75,7 @@ export default function Navbar() {
                                 </div>
                                 <span className="text-white text-sm font-medium">{user.name?.split(' ')[0]}</span>
                             </Link>
-                            <button onClick={handleLogout} title="Logout" className="w-[34px] h-[34px] flex items-center justify-center rounded-full bg-white/[0.06] text-text-secondary text-lg hover:bg-red-500/15 hover:text-red-500 transition-all duration-300">
+                            <button onClick={logout} title="Logout" className="w-[34px] h-[34px] flex items-center justify-center rounded-full bg-white/[0.06] text-text-secondary text-lg hover:bg-red-500/15 hover:text-red-500 transition-all duration-300">
                                 <HiLogout />
                             </button>
                         </div>
@@ -125,6 +104,7 @@ export default function Navbar() {
                             { to: '/', label: 'Home' },
                             { to: '/venues', label: 'Venues' },
                             { to: '/venues?featured=true', label: 'Featured' },
+                            { to: '/wishlist', label: '❤️ My Likes' },
                             { to: '/vendor', label: 'List Your Venue' },
                         ].map(link => (
                             <Link key={link.to} to={link.to} className="py-3.5 px-4 text-base font-medium text-text-secondary rounded-xl hover:bg-white/5 hover:text-white transition-all duration-300" onClick={() => setMenuOpen(false)}>
@@ -144,7 +124,7 @@ export default function Navbar() {
                                     </div>
                                     <span>{user.name}</span>
                                 </Link>
-                                <button className="w-full mt-2 inline-flex items-center justify-center gap-2 px-7 py-3 text-base font-semibold rounded-xl bg-gradient-to-r from-primary to-primary-light text-white shadow-[0_4px_15px_rgba(108,60,225,0.4)]" onClick={() => { handleLogout(); setMenuOpen(false); }}>
+                                <button className="w-full mt-2 inline-flex items-center justify-center gap-2 px-7 py-3 text-base font-semibold rounded-xl bg-gradient-to-r from-primary to-primary-light text-white shadow-[0_4px_15px_rgba(108,60,225,0.4)]" onClick={() => { logout(); setMenuOpen(false); }}>
                                     <HiLogout /> Logout
                                 </button>
                             </>

@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import useAuth from '../../hooks/useAuth';
+import { useMyVenues } from '../../hooks/useVenues';
+import { useVendorBookings } from '../../hooks/useBookings';
 import {
     HiHome, HiOfficeBuilding, HiCalendar, HiCurrencyRupee,
     HiChatAlt2, HiStar, HiCog, HiLogout, HiPlus, HiPencil,
     HiTrendingUp, HiEye, HiBell, HiMenu, HiX,
     HiCheck, HiClock, HiXCircle, HiPhotograph, HiClipboardList
 } from 'react-icons/hi';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const navItems = [
     { icon: <HiHome />, label: 'Dashboard', id: 'dashboard' },
@@ -24,50 +24,33 @@ const navItems = [
 
 export default function VendorDashboard() {
     const navigate = useNavigate();
+    const { user: vendorUser, loading: authLoading, logout } = useAuth();
+    const { venues: myVenues, loading: venuesLoading } = useMyVenues();
+    const { bookings, loading: bookingsLoading, updateStatus } = useVendorBookings();
+
     const [activeNav, setActiveNav] = useState('dashboard');
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [vendorUser, setVendorUser] = useState(null);
-    const [myVenues, setMyVenues] = useState([]);
-    const [bookings, setBookings] = useState([]);
     const [stats, setStats] = useState([
         { label: 'Total Bookings', value: '0', icon: <HiCalendar />, change: '', color: '#10B981' },
         { label: 'Revenue', value: '₹0', icon: <HiCurrencyRupee />, change: '', color: '#8B5CF6' },
         { label: 'Total Venues', value: '0', icon: <HiOfficeBuilding />, change: '', color: '#F5A623' },
         { label: 'Pending Requests', value: '0', icon: <HiClipboardList />, change: '', color: '#06B6D4' },
     ]);
-    const [loading, setLoading] = useState(true);
+
+    const loading = venuesLoading || bookingsLoading;
+
+    // Redirect if not vendor/admin
+    useEffect(() => {
+        if (!authLoading && (!vendorUser || (vendorUser.role !== 'vendor' && vendorUser.role !== 'admin'))) {
+            navigate('/vendor');
+        }
+    }, [authLoading, vendorUser, navigate]);
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // 1. Verify Auth & Get User
-                const { data: userData } = await axios.get(`${API_URL}/auth/me`, { withCredentials: true });
-                if (!userData.success || (userData.user.role !== 'vendor' && userData.user.role !== 'admin')) {
-                    throw new Error('Unauthorized');
-                }
-                setVendorUser(userData.user);
-
-                // 2. Fetch Venues
-                const { data: venueData } = await axios.get(`${API_URL}/venues/my-venues`, { withCredentials: true });
-                if (venueData.success) {
-                    setMyVenues(venueData.venues);
-                }
-
-                // 3. Fetch Bookings
-                const { data: bookingData } = await axios.get(`${API_URL}/bookings/vendor`, { withCredentials: true });
-                if (bookingData.success) {
-                    setBookings(bookingData.bookings);
-                    calculateStats(bookingData.bookings, venueData.venues);
-                }
-            } catch (error) {
-                console.error(error);
-                navigate('/vendor');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, [navigate]);
+        if (!loading) {
+            calculateStats(bookings, myVenues);
+        }
+    }, [bookings, myVenues, loading]);
 
     const calculateStats = (bookingsList, venuesList) => {
         const totalBookings = bookingsList.length;
@@ -82,27 +65,11 @@ export default function VendorDashboard() {
         ]);
     };
 
-    const handleLogout = async () => {
-        try {
-            await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
-            localStorage.removeItem('vendorUser');
-            navigate('/vendor');
-        } catch {
-            navigate('/vendor');
-        }
+    const handleLogout = () => {
+        logout();
     };
 
-    const updateBookingStatus = async (id, status) => {
-        try {
-            const { data } = await axios.put(`${API_URL}/bookings/${id}/status`, { status }, { withCredentials: true });
-            if (data.success) {
-                toast.success(`Booking ${status}`);
-                setBookings(bookings.map(b => b._id === id ? { ...b, status } : b));
-            }
-        } catch (error) {
-            toast.error('Failed to update status');
-        }
-    };
+
 
     const statusCls = (s) => s === 'confirmed' || s === 'approved' ? 'bg-accent-emerald/15 text-accent-emerald border-accent-emerald/20' : s === 'pending' ? 'bg-accent-gold/15 text-accent-gold border-accent-gold/20' : 'bg-accent/15 text-accent border-accent/20';
 
@@ -215,8 +182,8 @@ export default function VendorDashboard() {
                                             </div>
                                             {b.status === 'pending' && (
                                                 <div className="flex gap-2 mt-3 pt-3 border-t border-border-default">
-                                                    <button onClick={() => updateBookingStatus(b._id, 'confirmed')} className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all duration-300"><HiCheck /> Accept</button>
-                                                    <button onClick={() => updateBookingStatus(b._id, 'cancelled')} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all duration-300"><HiXCircle /> Decline</button>
+                                                    <button onClick={() => updateStatus(b._id, 'confirmed')} className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all duration-300"><HiCheck /> Accept</button>
+                                                    <button onClick={() => updateStatus(b._id, 'cancelled')} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all duration-300"><HiXCircle /> Decline</button>
                                                 </div>
                                             )}
                                         </div>

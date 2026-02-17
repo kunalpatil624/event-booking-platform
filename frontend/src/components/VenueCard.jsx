@@ -1,18 +1,36 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { HiStar, HiLocationMarker, HiUsers, HiHeart } from 'react-icons/hi';
 
-export default function VenueCard({ venue, index = 0 }) {
+export default function VenueCard({ venue, index = 0, isLiked = false, onToggleLike }) {
     const mainImage = venue.images?.find(img => img.isMain)?.url || venue.images?.[0]?.url || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800';
+    const venueId = venue._id || venue.id;
+    const [likeLoading, setLikeLoading] = useState(false);
+
+    const handleLike = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!onToggleLike || likeLoading) return;
+        setLikeLoading(true);
+        await onToggleLike(venueId);
+        setLikeLoading(false);
+    };
 
     return (
         <motion.div className="group bg-bg-card border border-border-default rounded-2xl overflow-hidden transition-all duration-300 hover:border-primary/30 hover:-translate-y-1.5 hover:shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_40px_rgba(108,60,225,0.1)]" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: index * 0.1 }}>
-            <Link to={`/venues/${venue._id || venue.id || 'demo'}`} className="block no-underline text-inherit">
+            <Link to={`/venues/${venueId || 'demo'}`} className="block no-underline text-inherit">
                 <div className="relative h-[220px] overflow-hidden">
                     <img src={mainImage} alt={venue.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.08]" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <button className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center bg-black/50 backdrop-blur-lg border-none rounded-full text-white text-lg z-[3] hover:bg-accent hover:scale-110 transition-all duration-300" onClick={(e) => { e.preventDefault(); }}>
-                        <HiHeart />
+                    <button
+                        className={`absolute top-3 right-3 w-9 h-9 flex items-center justify-center backdrop-blur-lg border-none rounded-full text-lg z-[3] transition-all duration-300 ${isLiked
+                            ? 'bg-accent text-white scale-110 shadow-[0_0_15px_rgba(255,59,48,0.4)]'
+                            : 'bg-black/50 text-white hover:bg-accent hover:scale-110'}`}
+                        onClick={handleLike}
+                        disabled={likeLoading}
+                    >
+                        <HiHeart className={likeLoading ? 'animate-pulse' : ''} />
                     </button>
                     {venue.featured && (
                         <span className="absolute top-3 left-3 px-3 py-1 bg-gradient-to-r from-accent-gold to-[#F7C948] text-bg-card text-[0.7rem] font-bold rounded-full uppercase tracking-wide z-[3]">★ Featured</span>

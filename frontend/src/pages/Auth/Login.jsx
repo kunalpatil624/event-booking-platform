@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import useAuth from '../../hooks/useAuth';
 import { HiMail, HiLockClosed, HiUser, HiPhone, HiEye, HiEyeOff, HiArrowLeft } from 'react-icons/hi';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 export default function Login() {
     const navigate = useNavigate();
+    const { login, register } = useAuth();
     const [isLogin, setIsLogin] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -18,10 +19,10 @@ export default function Login() {
         e.preventDefault();
         setLoading(true);
         try {
-            const endpoint = isLogin ? '/auth/login' : '/auth/register';
             const payload = isLogin ? { email: formData.email, password: formData.password } : formData;
-            const { data } = await axios.post(`${API_URL}${endpoint}`, payload, { withCredentials: true });
-            if (data.success) {
+            const data = isLogin ? await login(payload) : await register(payload);
+
+            if (data && data.success) {
                 toast.success(isLogin ? 'Login successful!' : 'Account created successfully!');
                 setTimeout(() => {
                     if (data.user.role === 'admin') navigate('/admin');

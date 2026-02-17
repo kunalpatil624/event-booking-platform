@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { HiArrowLeft, HiOfficeBuilding, HiLocationMarker, HiCurrencyRupee, HiUsers, HiPhotograph, HiCheck, HiPlus, HiTrash, HiX } from 'react-icons/hi';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+import { useVenueActions } from '../../hooks/useVenues';
 
 const venueTypes = ['banquet', 'lawn', 'resort', 'hotel', 'farmhouse', 'community-hall', 'marriage-garden'];
 const occasionsList = ['wedding', 'reception', 'engagement', 'birthday', 'corporate', 'conference', 'party', 'anniversary', 'other'];
 
 export default function AddVenue() {
     const navigate = useNavigate();
+    const { createVenue, uploadImages } = useVenueActions();
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [formData, setFormData] = useState({
@@ -136,18 +135,10 @@ export default function AddVenue() {
         if (files.length === 0) return;
 
         setUploading(true);
-        const uploadData = new FormData();
-        files.forEach(file => {
-            uploadData.append('images', file);
-        });
-
         try {
-            const { data } = await axios.post(`${API_URL}/upload`, uploadData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-                withCredentials: true
-            });
+            const data = await uploadImages(files);
 
-            if (data.success) {
+            if (data && data.success) {
                 const newUrls = data.images.map(img => img.url);
                 setFormData(prev => ({
                     ...prev,
@@ -203,9 +194,9 @@ export default function AddVenue() {
                 }))
             };
 
-            const { data } = await axios.post(`${API_URL}/venues`, payload, { withCredentials: true });
+            const data = await createVenue(payload);
 
-            if (data.success) {
+            if (data && data.success) {
                 toast.success('Venue listed successfully!');
                 navigate('/vendor/dashboard');
             }

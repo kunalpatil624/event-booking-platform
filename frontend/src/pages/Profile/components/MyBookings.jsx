@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useMyBookings } from '../../../hooks/useBookings';
 import { HiCalendar, HiLocationMarker, HiUsers, HiCurrencyRupee, HiEye, HiClock, HiCheckCircle, HiXCircle, HiExclamationCircle } from 'react-icons/hi';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const statusConfig = {
     pending: { color: 'text-amber-400', bg: 'bg-amber-400/10 border-amber-400/20', icon: <HiClock />, label: 'Pending' },
@@ -14,25 +12,9 @@ const statusConfig = {
 };
 
 export default function MyBookings() {
-    const [bookings, setBookings] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { bookings, loading } = useMyBookings();
     const [activeFilter, setActiveFilter] = useState('all');
     const [expandedBooking, setExpandedBooking] = useState(null);
-
-    useEffect(() => {
-        fetchBookings();
-    }, []);
-
-    const fetchBookings = async () => {
-        try {
-            const { data } = await axios.get(`${API_URL}/bookings/my`, { withCredentials: true });
-            if (data.success) setBookings(data.bookings);
-        } catch (error) {
-            console.error('Failed to fetch bookings:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const filteredBookings = activeFilter === 'all'
         ? bookings
@@ -78,8 +60,8 @@ export default function MyBookings() {
                         key={f.key}
                         onClick={() => setActiveFilter(f.key)}
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-300 border ${activeFilter === f.key
-                                ? 'bg-gradient-to-r from-primary to-primary-light text-white border-transparent shadow-[0_4px_15px_rgba(108,60,225,0.3)]'
-                                : 'bg-bg-card border-border-default text-text-secondary hover:text-white hover:border-border-light'
+                            ? 'bg-gradient-to-r from-primary to-primary-light text-white border-transparent shadow-[0_4px_15px_rgba(108,60,225,0.3)]'
+                            : 'bg-bg-card border-border-default text-text-secondary hover:text-white hover:border-border-light'
                             }`}
                     >
                         {f.label}
