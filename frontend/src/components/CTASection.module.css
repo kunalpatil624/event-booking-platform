@@ -1,0 +1,80 @@
+.section {
+    padding: 40px 0 80px;
+    background: var(--bg-secondary);
+}
+
+.card {
+    position: relative;
+    padding: 64px 48px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    text-align: center;
+}
+
+.bgOrb1 {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    top: -100px;
+    right: -50px;
+    filter: blur(40px);
+}
+
+.bgOrb2 {
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    bottom: -80px;
+    left: -30px;
+    filter: blur(40px);
+}
+
+.content {
+    position: relative;
+    z-index: 2;
+}
+
+.title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+    font-weight: 800;
+    color: white;
+    margin-bottom: 16px;
+}
+
+.desc {
+    font-size: 1.05rem;
+    color: rgba(255, 255, 255, 0.85);
+    max-width: 550px;
+    margin: 0 auto 32px;
+    line-height: 1.7;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.actions .btn-primary {
+    background: white;
+    color: var(--primary);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.actions .btn-primary:hover {
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 768px) {
+    .card {
+        padding: 48px 24px;
+    }
+}
