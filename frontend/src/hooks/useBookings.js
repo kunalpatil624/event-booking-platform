@@ -24,7 +24,20 @@ export function useMyBookings() {
         fetchBookings();
     }, [fetchBookings]);
 
-    return { bookings, loading, refetch: fetchBookings };
+    const cancelBooking = async (id) => {
+        try {
+            const { data } = await axios.put(`${API_URL}/bookings/${id}/cancel`, {}, { withCredentials: true });
+            if (data.success) {
+                toast.success('Booking cancelled successfully');
+                setBookings(prev => prev.map(b => b._id === id ? { ...b, status: 'cancelled' } : b));
+                return data;
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to cancel booking');
+        }
+    };
+
+    return { bookings, loading, refetch: fetchBookings, cancelBooking };
 }
 
 // Fetch vendor's bookings + update status
@@ -61,4 +74,57 @@ export function useVendorBookings() {
     };
 
     return { bookings, loading, updateStatus, refetch: fetchBookings };
+}
+
+// Create a new booking
+export function useCreateBooking() {
+    const [loading, setLoading] = useState(false);
+
+    const createBooking = async (bookingData) => {
+        setLoading(true);
+        try {
+            const { data } = await axios.post(`${API_URL}/bookings`, bookingData, { withCredentials: true });
+            if (data.success) {
+                toast.success('Booking created successfully!');
+                return data;
+            }
+        } catch (error) {
+            const msg = error.response?.data?.message || 'Failed to create booking';
+            toast.error(msg);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return { createBooking, loading };
+}
+
+// Check venue availability for a specific date
+export function useCheckAvailability() {
+    const [checking, setChecking] = useState(false);
+    const [availability, setAvailability] = useState(null);
+
+    const checkAvailability = async (venueId, date) => {
+        setChecking(true);
+        setAvailability(null);
+        try {
+            const { data } = await axios.get(`${API_URL}/bookings/check-availability`, {
+                params: { venueId, date }
+            });
+            if (data.success) {
+                setAvailability(data.isAvailable);
+                return data.isAvailable;
+            }
+        } catch (error) {
+            toast.error('Failed to check availability');
+            return null;
+        } finally {
+            setChecking(false);
+        }
+    };
+
+    const resetAvailability = () => setAvailability(null);
+
+    return { checkAvailability, checking, availability, resetAvailability };
 }

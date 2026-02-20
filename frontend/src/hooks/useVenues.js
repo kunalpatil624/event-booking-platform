@@ -209,3 +209,45 @@ export function useVenueActions() {
 
     return { createVenue, uploadImages, loading, error };
 }
+
+// Fetch vendor's reviews across all their venues
+export function useVendorReviews() {
+    const [reviews, setReviews] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchReviews = useCallback(async () => {
+        try {
+            const { data } = await axios.get(`${API_URL}/reviews/vendor`, { withCredentials: true });
+            if (data.success) setReviews(data.reviews);
+        } catch (error) {
+            console.error('Failed to fetch vendor reviews:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchReviews();
+    }, [fetchReviews]);
+
+    return { reviews, loading, refetch: fetchReviews };
+}
+
+// Submit a review for a venue
+export function useCreateReview() {
+    const [loading, setLoading] = useState(false);
+
+    const submitReview = async (reviewData) => {
+        setLoading(true);
+        try {
+            const { data } = await axios.post(`${API_URL}/reviews`, reviewData, { withCredentials: true });
+            if (data.success) return data;
+        } catch (err) {
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return { submitReview, loading };
+}

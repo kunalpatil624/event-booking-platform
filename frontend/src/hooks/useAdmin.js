@@ -146,3 +146,39 @@ export function useAdminVenueDetail(id) {
 
     return { venue, setVenue, loading };
 }
+
+// Fetch all bookings (admin)
+export function useAdminBookings() {
+    const [bookings, setBookings] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchBookings = useCallback(async () => {
+        try {
+            const { data } = await axios.get(`${API_URL}/admin/bookings`, { withCredentials: true });
+            if (data.success) setBookings(data.bookings);
+        } catch (error) {
+            console.error('Failed to fetch admin bookings:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchBookings();
+    }, [fetchBookings]);
+
+    const updateBookingStatus = async (id, status) => {
+        try {
+            const { data } = await axios.put(`${API_URL}/admin/bookings/${id}/status`, { status }, { withCredentials: true });
+            if (data.success) {
+                toast.success(`Booking ${status}`);
+                setBookings(prev => prev.map(b => b._id === id ? { ...b, status, paymentStatus: data.booking.paymentStatus } : b));
+                return data;
+            }
+        } catch (error) {
+            toast.error('Failed to update booking');
+        }
+    };
+
+    return { bookings, loading, refetch: fetchBookings, updateBookingStatus };
+}

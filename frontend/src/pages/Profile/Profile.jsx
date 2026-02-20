@@ -6,7 +6,8 @@ import Footer from '../../components/Footer';
 import ProfileInfo from './components/ProfileInfo';
 import MyBookings from './components/MyBookings';
 import useAuth from '../../hooks/useAuth';
-import { HiUser, HiCalendar, HiHeart, HiCog, HiLogout, HiArrowLeft, HiShieldCheck } from 'react-icons/hi';
+import useWishlistDefault, { useMyWishlist } from '../../hooks/useWishlist';
+import { HiUser, HiCalendar, HiHeart, HiCog, HiLogout, HiArrowLeft, HiShieldCheck, HiStar, HiLocationMarker, HiTrash, HiCurrencyRupee } from 'react-icons/hi';
 
 const sideNavItems = [
     { id: 'profile', label: 'My Profile', icon: <HiUser /> },
@@ -14,6 +15,64 @@ const sideNavItems = [
     { id: 'wishlist', label: 'Wishlist', icon: <HiHeart /> },
     { id: 'settings', label: 'Settings', icon: <HiCog /> },
 ];
+
+function WishlistTab() {
+    const { wishlist, loading, setWishlist } = useMyWishlist();
+    const { toggleLike } = useWishlistDefault();
+
+    const handleRemove = async (venueId) => {
+        await toggleLike(venueId);
+        setWishlist(prev => prev.filter(v => v._id !== venueId));
+    };
+
+    if (loading) return (
+        <div className="space-y-4">
+            {[1, 2].map(i => (
+                <div key={i} className="bg-bg-card border border-border-default rounded-2xl p-5 animate-pulse">
+                    <div className="flex gap-4"><div className="w-28 h-20 bg-white/[0.05] rounded-xl" /><div className="flex-1 space-y-3"><div className="h-4 bg-white/[0.05] rounded-lg w-3/4" /><div className="h-3 bg-white/[0.05] rounded-lg w-1/2" /></div></div>
+                </div>
+            ))}
+        </div>
+    );
+
+    if (wishlist.length === 0) return (
+        <motion.div className="bg-bg-card border border-border-default rounded-2xl p-10 text-center" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="text-5xl mb-4">💜</div>
+            <h3 className="text-xl font-bold text-white mb-2">Your Wishlist is Empty</h3>
+            <p className="text-text-secondary text-sm mb-6 max-w-md mx-auto">Save your favorite venues to compare and book later.</p>
+            <Link to="/venues" className="inline-flex items-center gap-2 px-7 py-3 text-base font-semibold rounded-xl bg-gradient-to-r from-primary to-primary-light text-white shadow-[0_4px_15px_rgba(108,60,225,0.4)] hover:-translate-y-0.5 transition-all duration-300"><HiHeart /> Explore Venues</Link>
+        </motion.div>
+    );
+
+    return (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <p className="text-text-muted text-sm mb-4">{wishlist.length} saved venue{wishlist.length > 1 ? 's' : ''}</p>
+            <div className="space-y-4">
+                {wishlist.map((venue, i) => (
+                    <motion.div key={venue._id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="bg-bg-card border border-border-default rounded-2xl overflow-hidden hover:border-border-light transition-all duration-300">
+                        <div className="flex gap-4 p-5 max-md:flex-col">
+                            <div className="w-32 h-24 max-md:w-full max-md:h-40 rounded-xl overflow-hidden shrink-0">
+                                <img src={venue.images?.[0]?.url || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=400'} alt={venue.name} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-base font-semibold text-white truncate">{venue.name}</h3>
+                                <div className="flex items-center gap-1.5 text-text-muted text-xs mt-0.5"><HiLocationMarker /><span>{venue.area}, {venue.city}</span></div>
+                                <div className="flex items-center gap-4 flex-wrap mt-2 text-sm">
+                                    <span className="flex items-center gap-1 text-text-secondary"><HiStar className="text-accent-gold" /> {venue.rating?.average || 'N/A'}</span>
+                                    <span className="flex items-center gap-1 text-text-secondary"><HiCurrencyRupee className="text-accent-emerald" /> ₹{(venue.startingPrice || 0).toLocaleString('en-IN')}</span>
+                                </div>
+                                <div className="flex items-center gap-3 mt-3">
+                                    <Link to={`/venues/${venue._id}`} className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-primary to-primary-light text-white text-xs font-semibold rounded-xl hover:-translate-y-0.5 transition-all duration-300 shadow-[0_4px_12px_rgba(108,60,225,0.3)]">View Venue</Link>
+                                    <button onClick={() => handleRemove(venue._id)} className="flex items-center gap-1.5 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-medium hover:bg-red-500/20 transition-all"><HiTrash /> Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+        </motion.div>
+    );
+}
 
 export default function Profile() {
     const navigate = useNavigate();
@@ -127,23 +186,7 @@ export default function Profile() {
                             )}
 
                             {activeTab === 'wishlist' && (
-                                <motion.div
-                                    className="bg-bg-card border border-border-default rounded-2xl p-10 text-center"
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                >
-                                    <div className="text-5xl mb-4">💜</div>
-                                    <h3 className="text-xl font-bold text-white mb-2">Your Wishlist</h3>
-                                    <p className="text-text-secondary text-sm mb-6 max-w-md mx-auto">
-                                        Save your favorite venues to compare and book later. Click the heart icon on any venue to add it here.
-                                    </p>
-                                    <Link
-                                        to="/venues"
-                                        className="inline-flex items-center gap-2 px-7 py-3 text-base font-semibold rounded-xl bg-gradient-to-r from-primary to-primary-light text-white shadow-[0_4px_15px_rgba(108,60,225,0.4)] hover:-translate-y-0.5 hover:shadow-[0_6px_25px_rgba(108,60,225,0.5)] transition-all duration-300"
-                                    >
-                                        <HiHeart /> Explore Venues
-                                    </Link>
-                                </motion.div>
+                                <WishlistTab />
                             )}
 
                             {activeTab === 'settings' && (

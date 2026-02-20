@@ -65,7 +65,11 @@ const bookingSchema = new mongoose.Schema({
     venueContact: {
         name: String,
         phone: String
-    }
+    },
+    razorpayOrderId: String,
+    razorpayPaymentId: String,
+    razorpaySignature: String,
+    razorpayRefundId: String
 }, {
     timestamps: true
 });

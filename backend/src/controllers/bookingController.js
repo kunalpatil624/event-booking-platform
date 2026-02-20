@@ -118,15 +118,36 @@ exports.getBooking = async (req, res) => {
 exports.updateBookingStatus = async (req, res) => {
     try {
         const { status } = req.body;
-        const booking = await Booking.findByIdAndUpdate(
-            req.params.id,
-            { status },
-            { new: true }
-        ).populate('venue', 'name city area');
+        const booking = await Booking.findById(req.params.id);
 
         if (!booking) {
             return res.status(404).json({ success: false, message: 'Booking not found' });
         }
+
+        // Auto-refund if vendor cancels a paid booking
+        let refundInfo = null;
+        if (status === 'cancelled' && booking.razorpayPaymentId && (booking.paymentStatus === 'advance-paid' || booking.paymentStatus === 'fully-paid')) {
+            try {
+                const Razorpay = require('razorpay');
+                const razorpay = new Razorpay({
+                    key_id: process.env.RAZORPAY_KEY_ID,
+                    key_secret: process.env.RAZORPAY_KEY_SECRET
+                });
+                const refundAmount = booking.pricing.advanceAmount * 100;
+                const refund = await razorpay.payments.refund(booking.razorpayPaymentId, {
+                    amount: refundAmount,
+                    notes: { bookingId: booking._id.toString(), reason: 'Booking cancelled by vendor' }
+                });
+                booking.paymentStatus = 'refunded';
+                booking.razorpayRefundId = refund.id;
+                refundInfo = { id: refund.id, amount: booking.pricing.advanceAmount, status: refund.status };
+            } catch (refundErr) {
+                console.error('Vendor refund failed:', refundErr.message);
+            }
+        }
+
+        booking.status = status;
+        await booking.save();
 
         // If cancelled, release the date
         if (status === 'cancelled') {
@@ -136,7 +157,8 @@ exports.updateBookingStatus = async (req, res) => {
             );
         }
 
-        res.status(200).json({ success: true, booking });
+        const updated = await Booking.findById(booking._id).populate('venue', 'name city area');
+        res.status(200).json({ success: true, booking: updated, refund: refundInfo });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -173,6 +195,68 @@ exports.getVendorBookings = async (req, res) => {
             .sort({ createdAt: -1 });
 
         res.status(200).json({ success: true, count: bookings.length, bookings });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Cancel own booking (user)
+// @route   PUT /api/bookings/:id/cancel
+exports.cancelMyBooking = async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+
+        if (!booking) {
+            return res.status(404).json({ success: false, message: 'Booking not found' });
+        }
+
+        if (booking.user.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, message: 'Not authorized to cancel this booking' });
+        }
+
+        if (booking.status === 'cancelled') {
+            return res.status(400).json({ success: false, message: 'Booking is already cancelled' });
+        }
+
+        if (booking.status === 'completed') {
+            return res.status(400).json({ success: false, message: 'Cannot cancel a completed booking' });
+        }
+
+        booking.status = 'cancelled';
+
+        // Auto-refund if payment was made
+        let refundInfo = null;
+        if (booking.razorpayPaymentId && (booking.paymentStatus === 'advance-paid' || booking.paymentStatus === 'fully-paid')) {
+            try {
+                const Razorpay = require('razorpay');
+                const razorpay = new Razorpay({
+                    key_id: process.env.RAZORPAY_KEY_ID,
+                    key_secret: process.env.RAZORPAY_KEY_SECRET
+                });
+                const refundAmount = booking.pricing.advanceAmount * 100;
+                const refund = await razorpay.payments.refund(booking.razorpayPaymentId, {
+                    amount: refundAmount,
+                    notes: { bookingId: booking._id.toString(), reason: 'Booking cancelled by user' }
+                });
+                booking.paymentStatus = 'refunded';
+                booking.razorpayRefundId = refund.id;
+                refundInfo = { id: refund.id, amount: booking.pricing.advanceAmount, status: refund.status };
+            } catch (refundErr) {
+                console.error('Auto-refund failed:', refundErr.message);
+            }
+        }
+
+        await booking.save();
+
+        // Release the locked date
+        await Availability.findOneAndUpdate(
+            { booking: booking._id },
+            { isAvailable: true, isLocked: false, lockedBy: null, booking: null }
+        );
+
+        const updated = await Booking.findById(booking._id).populate('venue', 'name city area');
+
+        res.status(200).json({ success: true, booking: updated, refund: refundInfo });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

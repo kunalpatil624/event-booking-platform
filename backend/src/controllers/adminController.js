@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Venue = require('../models/Venue');
 const Booking = require('../models/Booking');
+const Availability = require('../models/Availability');
 
 // @desc    Get Admin Dashboard Stats
 // @route   GET /api/admin/stats
@@ -11,9 +12,17 @@ exports.getAdminStats = async (req, res) => {
         const totalVenues = await Venue.countDocuments();
         const pendingVenues = await Venue.countDocuments({ isApproved: false });
         const totalBookings = await Booking.countDocuments();
+        const pendingBookings = await Booking.countDocuments({ status: 'pending' });
+        const confirmedBookings = await Booking.countDocuments({ status: 'confirmed' });
+        const cancelledBookings = await Booking.countDocuments({ status: 'cancelled' });
+        const completedBookings = await Booking.countDocuments({ status: 'completed' });
         const revenue = await Booking.aggregate([
-            { $match: { status: 'completed' } }, // Only completed bookings count towards revenue
+            { $match: { status: { $in: ['confirmed', 'completed'] } } },
             { $group: { _id: null, total: { $sum: '$pricing.totalAmount' } } }
+        ]);
+        const advanceCollected = await Booking.aggregate([
+            { $match: { paymentStatus: 'advance-paid' } },
+            { $group: { _id: null, total: { $sum: '$pricing.advanceAmount' } } }
         ]);
 
         res.status(200).json({
@@ -24,7 +33,12 @@ exports.getAdminStats = async (req, res) => {
                 venues: totalVenues,
                 pendingVenues,
                 bookings: totalBookings,
-                revenue: revenue[0]?.total || 0
+                pendingBookings,
+                confirmedBookings,
+                cancelledBookings,
+                completedBookings,
+                revenue: revenue[0]?.total || 0,
+                advanceCollected: advanceCollected[0]?.total || 0
             }
         });
     } catch (error) {
@@ -151,6 +165,77 @@ exports.getAllUsers = async (req, res) => {
     try {
         const users = await User.find().select('-password').sort({ createdAt: -1 });
         res.status(200).json({ success: true, count: users.length, users });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Get All Bookings (Admin)
+// @route   GET /api/admin/bookings
+exports.getAllBookings = async (req, res) => {
+    try {
+        const { status } = req.query;
+        const query = {};
+        if (status) query.status = status;
+
+        const bookings = await Booking.find(query)
+            .populate('venue', 'name city area images')
+            .populate('user', 'name email mobile')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ success: true, count: bookings.length, bookings });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Admin update booking status (with refund)
+// @route   PUT /api/admin/bookings/:id/status
+exports.adminUpdateBookingStatus = async (req, res) => {
+    try {
+        const { status } = req.body;
+        const booking = await Booking.findById(req.params.id);
+
+        if (!booking) {
+            return res.status(404).json({ success: false, message: 'Booking not found' });
+        }
+
+        let refundInfo = null;
+        if (status === 'cancelled' && booking.razorpayPaymentId && (booking.paymentStatus === 'advance-paid' || booking.paymentStatus === 'fully-paid')) {
+            try {
+                const Razorpay = require('razorpay');
+                const razorpay = new Razorpay({
+                    key_id: process.env.RAZORPAY_KEY_ID,
+                    key_secret: process.env.RAZORPAY_KEY_SECRET
+                });
+                const refundAmount = booking.pricing.advanceAmount * 100;
+                const refund = await razorpay.payments.refund(booking.razorpayPaymentId, {
+                    amount: refundAmount,
+                    notes: { bookingId: booking._id.toString(), reason: 'Cancelled by admin' }
+                });
+                booking.paymentStatus = 'refunded';
+                booking.razorpayRefundId = refund.id;
+                refundInfo = { id: refund.id, amount: booking.pricing.advanceAmount, status: refund.status };
+            } catch (refundErr) {
+                console.error('Admin refund failed:', refundErr.message);
+            }
+        }
+
+        booking.status = status;
+        await booking.save();
+
+        if (status === 'cancelled') {
+            await Availability.findOneAndUpdate(
+                { booking: booking._id },
+                { isAvailable: true, isLocked: false, lockedBy: null, booking: null }
+            );
+        }
+
+        const updated = await Booking.findById(booking._id)
+            .populate('venue', 'name city area')
+            .populate('user', 'name email mobile');
+
+        res.status(200).json({ success: true, booking: updated, refund: refundInfo });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

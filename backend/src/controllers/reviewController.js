@@ -52,6 +52,25 @@ exports.getVenueReviews = async (req, res) => {
     }
 };
 
+// @desc    Get all reviews for vendor's venues
+// @route   GET /api/reviews/vendor
+exports.getVendorReviews = async (req, res) => {
+    try {
+        const Venue = require('../models/Venue');
+        const venues = await Venue.find({ owner: req.user._id }).select('_id name');
+        const venueIds = venues.map(v => v._id);
+
+        const reviews = await Review.find({ venue: { $in: venueIds } })
+            .populate('user', 'name avatar')
+            .populate('venue', 'name city')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ success: true, count: reviews.length, reviews });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 // @desc    Delete review
 // @route   DELETE /api/reviews/:id
 exports.deleteReview = async (req, res) => {

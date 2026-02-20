@@ -45,6 +45,7 @@ export default function Navbar() {
                 <div className="hidden md:flex items-center gap-8">
                     {[
                         { to: '/', label: 'Home' },
+                        { to: '/about', label: 'About' },
                         { to: '/venues', label: 'Venues' },
                         { to: '/venues?featured=true', label: 'Featured' },
                         { to: '/vendor', label: 'List Venue' },
@@ -102,6 +103,7 @@ export default function Navbar() {
                     >
                         {[
                             { to: '/', label: 'Home' },
+                            { to: '/about', label: 'About' },
                             { to: '/venues', label: 'Venues' },
                             { to: '/venues?featured=true', label: 'Featured' },
                             { to: '/wishlist', label: '❤️ My Likes' },

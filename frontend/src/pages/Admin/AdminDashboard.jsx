@@ -3,13 +3,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuth from '../../hooks/useAuth';
-import { useAdminStats, useAdminVenues, useAdminUsers, useAdminVenueDetail } from '../../hooks/useAdmin';
+import { useAdminStats, useAdminVenues, useAdminUsers, useAdminVenueDetail, useAdminBookings } from '../../hooks/useAdmin';
 import {
-    HiHome, HiOfficeBuilding, HiUsers, HiCurrencyRupee,
+    HiHome, HiOfficeBuilding, HiUsers, HiCurrencyRupee, HiCalendar,
     HiCheckCircle, HiXCircle, HiLogout, HiMenu, HiX,
     HiTrendingUp, HiCheck, HiClipboardList, HiEye,
     HiLocationMarker, HiStar, HiChevronLeft, HiChevronRight,
-    HiBan, HiPlay, HiUserGroup
+    HiBan, HiPlay, HiUserGroup, HiClock
 } from 'react-icons/hi';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -17,6 +17,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 const navItems = [
     { icon: <HiHome />, label: 'Dashboard', id: 'dashboard' },
     { icon: <HiOfficeBuilding />, label: 'All Venues', id: 'venues' },
+    { icon: <HiCalendar />, label: 'Bookings', id: 'bookings' },
     { icon: <HiUsers />, label: 'Users', id: 'users' },
     { icon: <HiCheckCircle />, label: 'Approvals', id: 'approvals' },
 ];
@@ -30,8 +31,10 @@ export default function AdminDashboard() {
     const { venues: pendingVenues, loading: pendingLoading, refetch: refetchPending, updateVenueStatus: updatePendingStatus } = useAdminVenues('pending');
     const { venues: allVenues, loading: allLoading, refetch: refetchAll, updateVenueStatus: updateAllStatus, toggleVenueActive: toggleAllActive, toggleVenueFeatured: toggleAllFeatured } = useAdminVenues();
     const { users, loading: usersLoading } = useAdminUsers();
+    const { bookings: adminBookings, loading: bookingsLoading, updateBookingStatus: adminUpdateBooking } = useAdminBookings();
 
     const [activeNav, setActiveNav] = useState('dashboard');
+    const [bookingFilter, setBookingFilter] = useState('all');
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     // Venue Detail Modal State
@@ -41,14 +44,16 @@ export default function AdminDashboard() {
     const [currentImage, setCurrentImage] = useState(0);
     const [detailTab, setDetailTab] = useState('overview');
 
-    const loading = statsLoading || pendingLoading || allLoading || usersLoading;
+    const loading = statsLoading || pendingLoading || allLoading || usersLoading || bookingsLoading;
 
     // Transform stats for display
     const statsDisplay = fetchedStats ? [
         { label: 'Total Users', value: fetchedStats.users, icon: <HiUsers />, change: 'active', color: '#3B82F6' },
         { label: 'Total Venues', value: fetchedStats.venues, icon: <HiOfficeBuilding />, change: 'listed', color: '#10B981' },
-        { label: 'Pending Requests', value: fetchedStats.pendingVenues, icon: <HiClipboardList />, change: 'needs action', color: '#F59E0B' },
-        { label: 'Total Revenue', value: `₹${(fetchedStats.revenue / 100000).toFixed(2)}L`, icon: <HiCurrencyRupee />, change: 'lifetime', color: '#8B5CF6' }
+        { label: 'Total Bookings', value: fetchedStats.bookings, icon: <HiCalendar />, change: `${fetchedStats.pendingBookings || 0} pending`, color: '#06B6D4' },
+        { label: 'Pending Approvals', value: fetchedStats.pendingVenues, icon: <HiClipboardList />, change: 'needs action', color: '#F59E0B' },
+        { label: 'Total Revenue', value: `₹${(fetchedStats.revenue / 100000).toFixed(2)}L`, icon: <HiCurrencyRupee />, change: 'lifetime', color: '#8B5CF6' },
+        { label: 'Advance Collected', value: `₹${((fetchedStats.advanceCollected || 0) / 1000).toFixed(1)}K`, icon: <HiCurrencyRupee />, change: 'via Razorpay', color: '#10B981' }
     ] : [];
 
     // Redirect if not admin
@@ -167,7 +172,7 @@ export default function AdminDashboard() {
 
                 <div className="p-6 space-y-6">
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-4 max-lg:grid-cols-2 max-sm:grid-cols-1 gap-4">
+                    <div className="grid grid-cols-3 max-lg:grid-cols-2 max-sm:grid-cols-1 gap-4">
                         {statsDisplay.map((stat, i) => (
                             <motion.div key={i} className="flex items-center gap-4 p-5 bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
                                 <div className="w-12 h-12 flex items-center justify-center rounded-[14px] text-xl" style={{ background: `color-mix(in srgb, ${stat.color} 15%, transparent)`, color: stat.color }}>{stat.icon}</div>
@@ -265,6 +270,54 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* ============ BOOKINGS SECTION ============ */}
+                    {(activeNav === 'bookings' || activeNav === 'dashboard') && (
+                        <motion.div className="bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+                            <div className="flex items-center justify-between p-5 border-b border-border-default flex-wrap gap-3">
+                                <div className="flex items-center gap-3">
+                                    <h2 className="text-lg font-semibold text-white">All Bookings</h2>
+                                    <span className="px-2.5 py-0.5 bg-blue-500/15 text-blue-400 text-xs font-bold rounded-full">{adminBookings.length}</span>
+                                </div>
+                                <div className="flex gap-1.5">
+                                    {['all', 'pending', 'confirmed', 'completed', 'cancelled'].map(f => (
+                                        <button key={f} onClick={() => setBookingFilter(f)} className={`px-3 py-1 text-xs font-semibold rounded-lg capitalize transition-all ${bookingFilter === f ? 'bg-blue-500/15 text-blue-400' : 'text-text-muted hover:text-white hover:bg-white/5'}`}>{f}</button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="p-5 space-y-3 max-h-[600px] overflow-y-auto">
+                                {adminBookings.filter(b => bookingFilter === 'all' || b.status === bookingFilter).length > 0 ?
+                                    adminBookings.filter(b => bookingFilter === 'all' || b.status === bookingFilter).map(b => (
+                                        <div key={b._id} className="p-4 bg-white/[0.02] border border-border-default rounded-xl">
+                                            <div className="flex justify-between gap-3 mb-2 flex-wrap">
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <h4 className="text-sm font-semibold text-white">{b.user?.name || 'Unknown User'}</h4>
+                                                        <span className="text-text-muted text-[0.65rem]">({b.user?.email})</span>
+                                                    </div>
+                                                    <p className="text-text-muted text-xs capitalize">{b.eventType} • {b.venue?.name} • {b.venue?.city}</p>
+                                                    <p className="text-text-muted text-[0.7rem] mt-1">📅 {new Date(b.eventDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} • 👥 {b.guestCount} guests • 🆔 {b.bookingId}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="block text-base font-bold text-white">₹{b.pricing?.totalAmount?.toLocaleString('en-IN')}</span>
+                                                    <div className="flex items-center gap-1.5 mt-1 justify-end">
+                                                        <span className={`inline-block px-2 py-0.5 text-[0.6rem] font-bold rounded-full uppercase tracking-wider border capitalize ${b.status === 'confirmed' || b.status === 'completed' ? 'bg-accent-emerald/15 text-accent-emerald border-accent-emerald/20' : b.status === 'pending' ? 'bg-accent-gold/15 text-accent-gold border-accent-gold/20' : 'bg-accent/15 text-accent border-accent/20'}`}>{b.status}</span>
+                                                        <span className={`inline-block px-2 py-0.5 text-[0.6rem] font-bold rounded-full uppercase tracking-wider border ${b.paymentStatus === 'advance-paid' ? 'bg-blue-500/15 text-blue-400 border-blue-500/20' : b.paymentStatus === 'refunded' ? 'bg-primary/15 text-primary-light border-primary/20' : 'bg-white/5 text-text-muted border-border-default'}`}>{b.paymentStatus}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {(b.status === 'pending' || b.status === 'confirmed') && (
+                                                <div className="flex gap-2 mt-3 pt-3 border-t border-border-default">
+                                                    {b.status === 'pending' && <button onClick={() => adminUpdateBooking(b._id, 'confirmed')} className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all"><HiCheck /> Confirm</button>}
+                                                    {b.status === 'confirmed' && <button onClick={() => adminUpdateBooking(b._id, 'completed')} className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all"><HiCheck /> Complete</button>}
+                                                    <button onClick={() => { if (window.confirm('Cancel this booking?' + (b.paymentStatus === 'advance-paid' ? ' Refund will be initiated.' : ''))) adminUpdateBooking(b._id, 'cancelled'); }} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all"><HiXCircle /> Cancel{b.paymentStatus === 'advance-paid' ? ' & Refund' : ''}</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )) : <p className="text-text-muted text-center py-4">No bookings found.</p>}
                             </div>
                         </motion.div>
                     )}

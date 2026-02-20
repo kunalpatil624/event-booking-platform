@@ -11,6 +11,9 @@ import AdminLogin from './pages/Admin/AdminLogin';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import Profile from './pages/Profile/Profile';
 import Wishlist from './pages/Wishlist/Wishlist';
+import About from './pages/About/About';
+import Contact from './pages/Contact/Contact';
+import NotFound from './pages/NotFound';
 
 function App() {
     return (
@@ -28,6 +31,9 @@ function App() {
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/wishlist" element={<Wishlist />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="*" element={<NotFound />} />
             </Routes>
         </>
     );

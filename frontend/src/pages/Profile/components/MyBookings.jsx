@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMyBookings } from '../../../hooks/useBookings';
-import { HiCalendar, HiLocationMarker, HiUsers, HiCurrencyRupee, HiEye, HiClock, HiCheckCircle, HiXCircle, HiExclamationCircle } from 'react-icons/hi';
+import { HiCalendar, HiLocationMarker, HiUsers, HiCurrencyRupee, HiEye, HiClock, HiCheckCircle, HiXCircle, HiExclamationCircle, HiBan } from 'react-icons/hi';
 
 const statusConfig = {
     pending: { color: 'text-amber-400', bg: 'bg-amber-400/10 border-amber-400/20', icon: <HiClock />, label: 'Pending' },
@@ -12,9 +12,10 @@ const statusConfig = {
 };
 
 export default function MyBookings() {
-    const { bookings, loading } = useMyBookings();
+    const { bookings, loading, cancelBooking } = useMyBookings();
     const [activeFilter, setActiveFilter] = useState('all');
     const [expandedBooking, setExpandedBooking] = useState(null);
+    const [cancelling, setCancelling] = useState(null);
 
     const filteredBookings = activeFilter === 'all'
         ? bookings
@@ -195,6 +196,15 @@ export default function MyBookings() {
                                                     )}
 
                                                     <div className="flex items-center gap-3 justify-end">
+                                                        {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                                                            <button
+                                                                onClick={async (e) => { e.stopPropagation(); if (!window.confirm('Are you sure you want to cancel this booking?')) return; setCancelling(booking._id); await cancelBooking(booking._id); setCancelling(null); }}
+                                                                disabled={cancelling === booking._id}
+                                                                className="flex items-center gap-1.5 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm font-medium hover:bg-red-500/20 transition-all duration-300 disabled:opacity-50"
+                                                            >
+                                                                <HiBan /> {cancelling === booking._id ? 'Cancelling...' : 'Cancel Booking'}
+                                                            </button>
+                                                        )}
                                                         <Link
                                                             to={`/venues/${booking.venue?._id}`}
                                                             className="flex items-center gap-1.5 px-4 py-2 bg-white/[0.06] border border-border-default rounded-xl text-text-secondary text-sm font-medium hover:text-white hover:border-border-light transition-all duration-300"
