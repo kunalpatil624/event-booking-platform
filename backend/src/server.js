@@ -20,12 +20,26 @@ const app = express();
 connectDB();
 
 // Middleware
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    process.env.CLIENT_URL
+].filter(Boolean);
+
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:3005'],
+    origin: allowedOrigins,
     credentials: true
 }));
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+    limit: '10mb',
+    verify: (req, res, buf) => {
+        // Store raw body for webhook signature verification
+        if (req.originalUrl === '/api/payments/webhook') {
+            req.rawBody = buf.toString();
+        }
+    }
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 

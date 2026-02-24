@@ -1,82 +1,90 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import store from '../store';
+import {
+    loginUser,
+    registerUser,
+    fetchCurrentUser,
+    logoutUser,
+    updateUserProfile,
+} from '../store/authSlice';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// Set up axios defaults
+axios.defaults.withCredentials = true;
+
+// Axios interceptor: attach token from Redux store on every request
+const interceptorId = axios.interceptors.request.use((config) => {
+    const { token } = store.getState().auth;
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
 
 export default function useAuth() {
     const navigate = useNavigate();
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useDispatch();
+    const { user, token, loading } = useSelector((state) => state.auth);
+    const hasFetched = useRef(false);
 
-    const fetchUser = useCallback(async () => {
-        try {
-            const { data } = await axios.get(`${API_URL}/auth/me`, { withCredentials: true });
-            if (data.success) {
-                setUser(data.user);
-                return data.user;
-            }
-            setUser(null);
-            return null;
-        } catch {
-            setUser(null);
-            return null;
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
+    // Fetch user on mount (only once)
     useEffect(() => {
-        fetchUser();
-    }, [fetchUser]);
+        if (!hasFetched.current) {
+            hasFetched.current = true;
+            dispatch(fetchCurrentUser());
+        }
+    }, [dispatch]);
+
+    const login = useCallback(async (payload) => {
+        const result = await dispatch(loginUser(payload));
+        if (loginUser.fulfilled.match(result)) {
+            return result.payload;
+        }
+        const error = new Error(result.payload || 'Login failed');
+        error.response = { data: { message: result.payload } };
+        throw error;
+    }, [dispatch]);
+
+    const register = useCallback(async (payload) => {
+        const result = await dispatch(registerUser(payload));
+        if (registerUser.fulfilled.match(result)) {
+            return result.payload;
+        }
+        const error = new Error(result.payload || 'Registration failed');
+        error.response = { data: { message: result.payload } };
+        throw error;
+    }, [dispatch]);
 
     const logout = useCallback(async () => {
-        try {
-            await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
-        } catch { /* ignore */ }
-        setUser(null);
+        await dispatch(logoutUser());
         navigate('/');
-    }, [navigate]);
+    }, [dispatch, navigate]);
 
-    const login = async (payload) => {
-        try {
-            const { data } = await axios.post(`${API_URL}/auth/login`, payload, { withCredentials: true });
-            if (data.success) {
-                setUser(data.user);
-                return data;
-            }
-        } catch (error) {
-            throw error;
+    const updateProfile = useCallback(async (formData) => {
+        const result = await dispatch(updateUserProfile(formData));
+        if (updateUserProfile.fulfilled.match(result)) {
+            toast.success('Profile updated successfully');
+            return result.payload;
         }
-    };
+        toast.error(result.payload || 'Failed to update profile');
+        throw new Error(result.payload);
+    }, [dispatch]);
 
-    const register = async (payload) => {
-        try {
-            const { data } = await axios.post(`${API_URL}/auth/register`, payload, { withCredentials: true });
-            if (data.success) {
-                setUser(data.user);
-                return data;
-            }
-        } catch (error) {
-            throw error;
+    const fetchUser = useCallback(async () => {
+        const result = await dispatch(fetchCurrentUser());
+        if (fetchCurrentUser.fulfilled.match(result)) {
+            return result.payload.user;
         }
-    };
+        return null;
+    }, [dispatch]);
 
-    const updateProfile = async (formData) => {
-        try {
-            const { data } = await axios.put(`${API_URL}/auth/profile`, formData, { withCredentials: true });
-            if (data.success) {
-                setUser(data.user);
-                toast.success('Profile updated successfully');
-                return data;
-            }
-        } catch (error) {
-            console.error('Update profile failed:', error);
-            toast.error(error.response?.data?.message || 'Failed to update profile');
-            throw error;
-        }
-    };
+    const setUser = useCallback(() => {
+        // kept for backward compatibility, refetch user instead
+        dispatch(fetchCurrentUser());
+    }, [dispatch]);
 
     const isAuthenticated = !!user;
     const isAdmin = user?.role === 'admin';
@@ -84,3 +92,4 @@ export default function useAuth() {
 
     return { user, setUser, loading, isAuthenticated, isAdmin, isVendor, logout, login, register, updateProfile, fetchUser };
 }
+

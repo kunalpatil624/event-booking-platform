@@ -152,3 +152,120 @@ exports.refundPayment = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// @desc    Razorpay Webhook Handler (Server-to-Server verification)
+// @route   POST /api/payments/webhook
+// @access  Public (verified via HMAC signature)
+exports.handleWebhook = async (req, res) => {
+    try {
+        const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+        if (!webhookSecret) {
+            console.error('RAZORPAY_WEBHOOK_SECRET not configured');
+            return res.status(500).json({ status: 'error', message: 'Webhook secret not configured' });
+        }
+
+        // Verify webhook signature using raw body
+        const signature = req.headers['x-razorpay-signature'];
+        if (!signature) {
+            return res.status(400).json({ status: 'error', message: 'Missing signature' });
+        }
+
+        const expectedSignature = crypto
+            .createHmac('sha256', webhookSecret)
+            .update(req.rawBody)
+            .digest('hex');
+
+        if (expectedSignature !== signature) {
+            console.error('Webhook signature mismatch');
+            return res.status(400).json({ status: 'error', message: 'Invalid signature' });
+        }
+
+        // Parse event
+        const event = JSON.parse(req.rawBody);
+        const eventType = event.event;
+        const payload = event.payload;
+
+        console.log(`📩 Webhook received: ${eventType}`);
+
+        switch (eventType) {
+            // Payment successfully captured
+            case 'payment.captured': {
+                const payment = payload.payment.entity;
+                const orderId = payment.order_id;
+
+                const booking = await Booking.findOne({ razorpayOrderId: orderId });
+                if (!booking) {
+                    console.error(`Webhook: No booking found for order ${orderId}`);
+                    return res.status(200).json({ status: 'ok', message: 'No booking found' });
+                }
+
+                // Idempotency check - skip if already processed
+                if (booking.paymentStatus === 'advance-paid' || booking.paymentStatus === 'fully-paid') {
+                    return res.status(200).json({ status: 'ok', message: 'Already processed' });
+                }
+
+                booking.razorpayPaymentId = payment.id;
+                booking.paymentStatus = 'advance-paid';
+                booking.status = 'confirmed';
+                await booking.save();
+
+                console.log(`✅ Webhook: Booking ${booking.bookingId} confirmed (payment: ${payment.id})`);
+                break;
+            }
+
+            // Payment failed
+            case 'payment.failed': {
+                const payment = payload.payment.entity;
+                const orderId = payment.order_id;
+
+                const booking = await Booking.findOne({ razorpayOrderId: orderId });
+                if (booking && booking.paymentStatus === 'unpaid') {
+                    console.log(`❌ Webhook: Payment failed for booking ${booking.bookingId}`);
+                }
+                break;
+            }
+
+            // Refund initiated
+            case 'refund.created': {
+                const refund = payload.refund.entity;
+                const paymentId = refund.payment_id;
+
+                const booking = await Booking.findOne({ razorpayPaymentId: paymentId });
+                if (booking && booking.paymentStatus !== 'refunded') {
+                    booking.razorpayRefundId = refund.id;
+                    booking.paymentStatus = 'refunded';
+                    await booking.save();
+                    console.log(`💰 Webhook: Refund created for booking ${booking.bookingId}`);
+                }
+                break;
+            }
+
+            // Refund processed (final confirmation)
+            case 'refund.processed': {
+                const refund = payload.refund.entity;
+                const paymentId = refund.payment_id;
+
+                const booking = await Booking.findOne({ razorpayPaymentId: paymentId });
+                if (booking) {
+                    booking.razorpayRefundId = refund.id;
+                    booking.paymentStatus = 'refunded';
+                    await booking.save();
+                    console.log(`✅ Webhook: Refund processed for booking ${booking.bookingId}`);
+                }
+                break;
+            }
+
+            default:
+                console.log(`ℹ️ Webhook: Unhandled event: ${eventType}`);
+        }
+
+        // Always return 200 to Razorpay to prevent retries
+        res.status(200).json({ status: 'ok' });
+
+    } catch (error) {
+        console.error('Webhook error:', error);
+        // Return 200 even on error to stop Razorpay retries for our internal errors
+        res.status(200).json({ status: 'error', message: 'Internal processing error' });
+    }
+};

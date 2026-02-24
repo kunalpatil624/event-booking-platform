@@ -9,7 +9,7 @@ import {
     HiCheckCircle, HiXCircle, HiLogout, HiMenu, HiX,
     HiTrendingUp, HiCheck, HiClipboardList, HiEye,
     HiLocationMarker, HiStar, HiChevronLeft, HiChevronRight,
-    HiBan, HiPlay, HiUserGroup, HiClock
+    HiBan, HiPlay, HiUserGroup, HiClock, HiPhone, HiMail, HiDocumentText
 } from 'react-icons/hi';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -36,6 +36,9 @@ export default function AdminDashboard() {
     const [activeNav, setActiveNav] = useState('dashboard');
     const [bookingFilter, setBookingFilter] = useState('all');
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // Booking Detail Modal State
+    const [selectedBooking, setSelectedBooking] = useState(null);
 
     // Venue Detail Modal State
     const [selectedVenueId, setSelectedVenueId] = useState(null);
@@ -309,13 +312,12 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            {(b.status === 'pending' || b.status === 'confirmed') && (
-                                                <div className="flex gap-2 mt-3 pt-3 border-t border-border-default">
-                                                    {b.status === 'pending' && <button onClick={() => adminUpdateBooking(b._id, 'confirmed')} className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all"><HiCheck /> Confirm</button>}
-                                                    {b.status === 'confirmed' && <button onClick={() => adminUpdateBooking(b._id, 'completed')} className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all"><HiCheck /> Complete</button>}
-                                                    <button onClick={() => { if (window.confirm('Cancel this booking?' + (b.paymentStatus === 'advance-paid' ? ' Refund will be initiated.' : ''))) adminUpdateBooking(b._id, 'cancelled'); }} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all"><HiXCircle /> Cancel{b.paymentStatus === 'advance-paid' ? ' & Refund' : ''}</button>
-                                                </div>
-                                            )}
+                                            <div className="flex gap-2 mt-3 pt-3 border-t border-border-default flex-wrap">
+                                                <button onClick={() => setSelectedBooking(b)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition-all"><HiEye /> View Details</button>
+                                                {b.status === 'pending' && <button onClick={() => adminUpdateBooking(b._id, 'confirmed')} className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all"><HiCheck /> Confirm</button>}
+                                                {b.status === 'confirmed' && <button onClick={() => adminUpdateBooking(b._id, 'completed')} className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all"><HiCheck /> Complete</button>}
+                                                {(b.status === 'pending' || b.status === 'confirmed') && <button onClick={() => { if (window.confirm('Cancel this booking?' + (b.paymentStatus === 'advance-paid' ? ' Refund will be initiated.' : ''))) adminUpdateBooking(b._id, 'cancelled'); }} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all"><HiXCircle /> Cancel{b.paymentStatus === 'advance-paid' ? ' & Refund' : ''}</button>}
+                                            </div>
                                         </div>
                                     )) : <p className="text-text-muted text-center py-4">No bookings found.</p>}
                             </div>
@@ -360,6 +362,209 @@ export default function AdminDashboard() {
                 </div>
             </main>
             {sidebarOpen && <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+
+            {/* ==================== BOOKING DETAIL MODAL ==================== */}
+            <AnimatePresence>
+                {selectedBooking && (
+                    <motion.div
+                        className="fixed inset-0 z-[100] flex items-start justify-center bg-black/70 backdrop-blur-sm overflow-y-auto py-8 px-4"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        onClick={() => setSelectedBooking(null)}
+                    >
+                        <motion.div
+                            className="bg-bg-secondary border border-border-default rounded-2xl w-full max-w-2xl shadow-2xl relative"
+                            initial={{ opacity: 0, y: 40, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 40, scale: 0.95 }}
+                            transition={{ type: 'spring', damping: 25 }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between p-5 border-b border-border-default">
+                                <div>
+                                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                        <HiDocumentText className="text-blue-400" /> Booking Details
+                                    </h2>
+                                    <p className="text-text-muted text-xs mt-0.5">ID: {selectedBooking.bookingId}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full uppercase ${selectedBooking.status === 'confirmed' || selectedBooking.status === 'completed' ? 'bg-accent-emerald/15 text-accent-emerald' : selectedBooking.status === 'pending' ? 'bg-accent-gold/15 text-accent-gold' : 'bg-accent/15 text-accent'}`}>
+                                        {selectedBooking.status}
+                                    </span>
+                                    <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full uppercase ${selectedBooking.paymentStatus === 'advance-paid' ? 'bg-blue-500/15 text-blue-400' : selectedBooking.paymentStatus === 'refunded' ? 'bg-primary/15 text-primary-light' : 'bg-white/5 text-text-muted'}`}>
+                                        {selectedBooking.paymentStatus}
+                                    </span>
+                                    <button onClick={() => setSelectedBooking(null)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-text-muted hover:text-white hover:bg-white/10 transition-all"><HiX /></button>
+                                </div>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto">
+                                {/* Customer Info */}
+                                <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                    <span className="text-text-muted text-xs block mb-3 uppercase tracking-wider font-medium">Customer Information</span>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-11 h-11 rounded-full bg-blue-500/15 text-blue-400 flex items-center justify-center font-bold text-lg">
+                                            {selectedBooking.user?.name?.[0]?.toUpperCase() || 'U'}
+                                        </div>
+                                        <div>
+                                            <p className="text-white font-semibold">{selectedBooking.user?.name || 'Unknown'}</p>
+                                            <div className="flex items-center gap-3 text-text-muted text-xs mt-0.5">
+                                                <span className="flex items-center gap-1"><HiMail className="text-sm" /> {selectedBooking.user?.email}</span>
+                                                {selectedBooking.user?.mobile && <span className="flex items-center gap-1"><HiPhone className="text-sm" /> {selectedBooking.user.mobile}</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Event & Venue Info */}
+                                <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-4">
+                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                        <span className="text-text-muted text-xs block mb-1">Venue</span>
+                                        <span className="text-white font-medium">{selectedBooking.venue?.name}</span>
+                                        <p className="text-text-muted text-xs mt-0.5">{selectedBooking.venue?.area}, {selectedBooking.venue?.city}</p>
+                                    </div>
+                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                        <span className="text-text-muted text-xs block mb-1">Event Type</span>
+                                        <span className="text-white font-medium capitalize">{selectedBooking.eventType}</span>
+                                    </div>
+                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                        <span className="text-text-muted text-xs block mb-1">Event Date</span>
+                                        <span className="text-white font-medium flex items-center gap-1.5">
+                                            <HiCalendar className="text-blue-400" />
+                                            {new Date(selectedBooking.eventDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                        </span>
+                                        {selectedBooking.eventTime?.start && (
+                                            <p className="text-text-muted text-xs mt-0.5 flex items-center gap-1"><HiClock className="text-sm" /> {selectedBooking.eventTime.start} - {selectedBooking.eventTime.end}</p>
+                                        )}
+                                    </div>
+                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                        <span className="text-text-muted text-xs block mb-1">Guest Count</span>
+                                        <span className="text-white font-medium flex items-center gap-1.5">
+                                            <HiUserGroup className="text-blue-400" /> {selectedBooking.guestCount} guests
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Package Selected */}
+                                {selectedBooking.packageSelected?.name && (
+                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                        <span className="text-text-muted text-xs block mb-2 uppercase tracking-wider font-medium">Package Selected</span>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-white font-semibold">{selectedBooking.packageSelected.name}</span>
+                                            <span className="text-accent-emerald font-bold">₹{selectedBooking.packageSelected.price?.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        {selectedBooking.packageSelected.includes?.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 mt-2">
+                                                {selectedBooking.packageSelected.includes.map((item, i) => (
+                                                    <span key={i} className="px-2 py-0.5 bg-accent-emerald/10 text-accent-emerald border border-accent-emerald/15 rounded-full text-[10px] flex items-center gap-1"><HiCheck className="text-[10px]" /> {item}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Add-ons */}
+                                {selectedBooking.addOns?.length > 0 && (
+                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                        <span className="text-text-muted text-xs block mb-2 uppercase tracking-wider font-medium">Add-ons</span>
+                                        <div className="space-y-1.5">
+                                            {selectedBooking.addOns.map((addon, i) => (
+                                                <div key={i} className="flex items-center justify-between text-sm">
+                                                    <span className="text-text-secondary">{addon.name}</span>
+                                                    <span className="text-white font-medium">₹{addon.price?.toLocaleString('en-IN')}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Pricing Breakdown */}
+                                <div className="p-4 bg-gradient-to-br from-blue-500/5 to-primary/5 border border-blue-500/15 rounded-xl">
+                                    <span className="text-text-muted text-xs block mb-3 uppercase tracking-wider font-medium">Pricing Breakdown</span>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-text-secondary">Base Price</span>
+                                            <span className="text-white">₹{selectedBooking.pricing?.basePrice?.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        {selectedBooking.pricing?.addOnsTotal > 0 && (
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-text-secondary">Add-ons</span>
+                                                <span className="text-white">₹{selectedBooking.pricing.addOnsTotal.toLocaleString('en-IN')}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-text-secondary">Tax (18% GST)</span>
+                                            <span className="text-white">₹{selectedBooking.pricing?.tax?.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        <div className="border-t border-border-default my-2" />
+                                        <div className="flex justify-between text-base font-bold">
+                                            <span className="text-white">Total Amount</span>
+                                            <span className="text-accent-emerald">₹{selectedBooking.pricing?.totalAmount?.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm mt-1">
+                                            <span className="text-text-secondary">Advance (20%)</span>
+                                            <span className="text-blue-400 font-medium">₹{selectedBooking.pricing?.advanceAmount?.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-text-secondary">Remaining</span>
+                                            <span className="text-accent-gold font-medium">₹{selectedBooking.pricing?.remainingAmount?.toLocaleString('en-IN')}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Special Notes */}
+                                {selectedBooking.specialNotes && (
+                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                        <span className="text-text-muted text-xs block mb-2 uppercase tracking-wider font-medium">Special Notes</span>
+                                        <p className="text-text-secondary text-sm leading-relaxed">{selectedBooking.specialNotes}</p>
+                                    </div>
+                                )}
+
+                                {/* Booking Timeline */}
+                                <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                    <span className="text-text-muted text-xs block mb-2 uppercase tracking-wider font-medium">Booking Info</span>
+                                    <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-3 text-sm">
+                                        <div>
+                                            <span className="text-text-muted text-xs">Booked On</span>
+                                            <p className="text-white">{new Date(selectedBooking.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                        </div>
+                                        {selectedBooking.razorpayPaymentId && (
+                                            <div>
+                                                <span className="text-text-muted text-xs">Payment ID</span>
+                                                <p className="text-white text-xs font-mono">{selectedBooking.razorpayPaymentId}</p>
+                                            </div>
+                                        )}
+                                        {selectedBooking.razorpayRefundId && (
+                                            <div>
+                                                <span className="text-text-muted text-xs">Refund ID</span>
+                                                <p className="text-white text-xs font-mono">{selectedBooking.razorpayRefundId}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Modal Footer — Actions */}
+                            {(selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed') && (
+                                <div className="flex items-center justify-end gap-2 p-5 border-t border-border-default bg-white/[0.01] rounded-b-2xl">
+                                    {selectedBooking.status === 'pending' && (
+                                        <button onClick={() => { adminUpdateBooking(selectedBooking._id, 'confirmed'); setSelectedBooking(prev => ({ ...prev, status: 'confirmed' })); }} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent-emerald text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent-emerald/25">
+                                            <HiCheck /> Confirm Booking
+                                        </button>
+                                    )}
+                                    {selectedBooking.status === 'confirmed' && (
+                                        <button onClick={() => { adminUpdateBooking(selectedBooking._id, 'completed'); setSelectedBooking(prev => ({ ...prev, status: 'completed' })); }} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent-emerald text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent-emerald/25">
+                                            <HiCheck /> Mark Completed
+                                        </button>
+                                    )}
+                                    <button onClick={() => { if (window.confirm('Cancel this booking?' + (selectedBooking.paymentStatus === 'advance-paid' ? ' Refund will be initiated.' : ''))) { adminUpdateBooking(selectedBooking._id, 'cancelled'); setSelectedBooking(prev => ({ ...prev, status: 'cancelled' })); } }} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent/25">
+                                        <HiXCircle /> Cancel{selectedBooking.paymentStatus === 'advance-paid' ? ' & Refund' : ''}
+                                    </button>
+                                </div>
+                            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* ==================== VENUE DETAIL MODAL ==================== */}
             <AnimatePresence>

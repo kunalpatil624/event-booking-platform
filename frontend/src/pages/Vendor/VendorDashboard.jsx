@@ -10,8 +10,9 @@ import {
     HiChatAlt2, HiStar, HiCog, HiLogout, HiPlus, HiPencil,
     HiTrendingUp, HiEye, HiBell, HiMenu, HiX,
     HiCheck, HiClock, HiXCircle, HiPhotograph, HiClipboardList,
-    HiUser, HiLockClosed, HiMail, HiPhone, HiSave
+    HiUser, HiLockClosed, HiMail, HiPhone, HiSave, HiUserGroup, HiDocumentText
 } from 'react-icons/hi';
+import { AnimatePresence } from 'framer-motion';
 
 const navItems = [
     { icon: <HiHome />, label: 'Dashboard', id: 'dashboard' },
@@ -32,6 +33,7 @@ export default function VendorDashboard() {
 
     const [activeNav, setActiveNav] = useState('dashboard');
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [selectedBooking, setSelectedBooking] = useState(null);
     const [stats, setStats] = useState([
         { label: 'Total Bookings', value: '0', icon: <HiCalendar />, change: '', color: '#10B981' },
         { label: 'Revenue', value: '₹0', icon: <HiCurrencyRupee />, change: '', color: '#8B5CF6' },
@@ -207,43 +209,47 @@ export default function VendorDashboard() {
 
                     {/* ============ BOOKINGS SECTION ============ */}
                     {activeNav === 'bookings' || activeNav === 'dashboard' ? (
-                        <div className="grid grid-cols-[1.5fr_1fr] max-lg:grid-cols-1 gap-6">
-                            <motion.div className="bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-                                <div className="flex items-center justify-between p-5 border-b border-border-default">
-                                    <h2 className="text-lg font-semibold text-white">Recent Bookings</h2>
-                                    <span className="w-7 h-7 flex items-center justify-center bg-primary/15 text-primary-light text-xs font-bold rounded-full">{bookings.length}</span>
-                                </div>
-                                <div className="p-5 space-y-4 max-h-[500px] overflow-y-auto">
-                                    {bookings.length > 0 ? bookings.map(b => (
-                                        <div key={b._id} className="p-4 bg-white/[0.02] border border-border-default rounded-xl">
-                                            <div className="flex justify-between gap-3 mb-2 max-sm:flex-col">
-                                                <div>
-                                                    <h4 className="text-sm font-semibold text-white">{b.user?.name}</h4>
-                                                    <p className="text-text-muted text-xs mt-0.5 capitalize">{b.eventType} • {b.venue?.name}</p>
-                                                    <p className="text-text-muted text-[0.7rem] mt-1">📅 {new Date(b.eventDate).toLocaleDateString()} • 👥 {b.guestCount} guests</p>
-                                                </div>
-                                                <div className="text-right max-sm:text-left">
-                                                    <span className="block text-base font-bold text-white">₹{b.pricing?.totalAmount?.toLocaleString('en-IN')}</span>
-                                                    <span className={`inline-block mt-1 px-2 py-0.5 text-[0.6rem] font-bold rounded-full uppercase tracking-wider border capitalize ${statusCls(b.status)}`}>{b.status}</span>
+                        <motion.div className="bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                            <div className="flex items-center justify-between p-5 border-b border-border-default">
+                                <h2 className="text-lg font-semibold text-white">{activeNav === 'bookings' ? 'All Bookings' : 'Recent Bookings'}</h2>
+                                <span className="w-7 h-7 flex items-center justify-center bg-primary/15 text-primary-light text-xs font-bold rounded-full">{bookings.length}</span>
+                            </div>
+                            <div className={`p-5 space-y-4 overflow-y-auto ${activeNav === 'dashboard' ? 'max-h-[500px]' : ''}`}>
+                                {bookings.length > 0 ? bookings.map(b => (
+                                    <div key={b._id} className="p-4 bg-white/[0.02] border border-border-default rounded-xl">
+                                        <div className="flex justify-between gap-3 mb-2 max-sm:flex-col">
+                                            <div>
+                                                <h4 className="text-sm font-semibold text-white">{b.user?.name}</h4>
+                                                <p className="text-text-muted text-xs mt-0.5 capitalize">{b.eventType} • {b.venue?.name}</p>
+                                                <p className="text-text-muted text-[0.7rem] mt-1">📅 {new Date(b.eventDate).toLocaleDateString()} • 👥 {b.guestCount} guests • 🆔 {b.bookingId}</p>
+                                            </div>
+                                            <div className="text-right max-sm:text-left">
+                                                <span className="block text-base font-bold text-white">₹{b.pricing?.totalAmount?.toLocaleString('en-IN')}</span>
+                                                <div className="flex items-center gap-1.5 mt-1 max-sm:justify-start justify-end">
+                                                    <span className={`inline-block px-2 py-0.5 text-[0.6rem] font-bold rounded-full uppercase tracking-wider border capitalize ${statusCls(b.status)}`}>{b.status}</span>
+                                                    <span className={`inline-block px-2 py-0.5 text-[0.6rem] font-bold rounded-full uppercase tracking-wider border ${b.paymentStatus === 'advance-paid' ? 'bg-blue-500/15 text-blue-400 border-blue-500/20' : b.paymentStatus === 'refunded' ? 'bg-primary/15 text-primary-light border-primary/20' : 'bg-white/5 text-text-muted border-border-default'}`}>{b.paymentStatus}</span>
                                                 </div>
                                             </div>
+                                        </div>
+                                        <div className="flex gap-2 mt-3 pt-3 border-t border-border-default flex-wrap">
+                                            <button onClick={() => setSelectedBooking(b)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition-all duration-300"><HiEye /> View Details</button>
                                             {b.status === 'pending' && (
-                                                <div className="flex gap-2 mt-3 pt-3 border-t border-border-default">
+                                                <>
                                                     <button onClick={() => updateStatus(b._id, 'confirmed')} className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all duration-300"><HiCheck /> Accept</button>
                                                     <button onClick={() => updateStatus(b._id, 'cancelled')} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all duration-300"><HiXCircle /> Decline</button>
-                                                </div>
+                                                </>
                                             )}
                                             {b.status === 'confirmed' && (
-                                                <div className="flex gap-2 mt-3 pt-3 border-t border-border-default">
+                                                <>
                                                     <button onClick={() => updateStatus(b._id, 'completed')} className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all duration-300"><HiCheck /> Mark Completed</button>
                                                     <button onClick={() => { if (window.confirm('Cancel this booking? If paid, a refund will be initiated.')) updateStatus(b._id, 'cancelled'); }} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all duration-300"><HiXCircle /> Cancel</button>
-                                                </div>
+                                                </>
                                             )}
                                         </div>
-                                    )) : <p className="text-text-muted text-center py-4">No bookings received yet.</p>}
-                                </div>
-                            </motion.div>
-                        </div>
+                                    </div>
+                                )) : <p className="text-text-muted text-center py-4">No bookings received yet.</p>}
+                            </div>
+                        </motion.div>
                     ) : null}
 
                     {/* ============ EARNINGS SECTION ============ */}
@@ -517,9 +523,214 @@ export default function VendorDashboard() {
                         </motion.div>
                     )}
                 </div>
-            </main>
+            </main >
 
-            {sidebarOpen && <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
-        </div>
+            {sidebarOpen && <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+            }
+
+            {/* ==================== BOOKING DETAIL MODAL ==================== */}
+            <AnimatePresence>
+                {selectedBooking && (
+                    <motion.div
+                        className="fixed inset-0 z-[100] flex items-start justify-center bg-black/70 backdrop-blur-sm overflow-y-auto py-8 px-4"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        onClick={() => setSelectedBooking(null)}
+                    >
+                        <motion.div
+                            className="bg-bg-secondary border border-border-default rounded-2xl w-full max-w-2xl shadow-2xl relative"
+                            initial={{ opacity: 0, y: 40, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 40, scale: 0.95 }}
+                            transition={{ type: 'spring', damping: 25 }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between p-5 border-b border-border-default">
+                                <div>
+                                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                        <HiDocumentText className="text-accent-emerald" /> Booking Details
+                                    </h2>
+                                    <p className="text-text-muted text-xs mt-0.5">ID: {selectedBooking.bookingId}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full uppercase ${statusCls(selectedBooking.status)}`}>
+                                        {selectedBooking.status}
+                                    </span>
+                                    <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full uppercase ${selectedBooking.paymentStatus === 'advance-paid' ? 'bg-blue-500/15 text-blue-400' : selectedBooking.paymentStatus === 'refunded' ? 'bg-primary/15 text-primary-light' : 'bg-white/5 text-text-muted'}`}>
+                                        {selectedBooking.paymentStatus}
+                                    </span>
+                                    <button onClick={() => setSelectedBooking(null)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-text-muted hover:text-white hover:bg-white/10 transition-all"><HiX /></button>
+                                </div>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto">
+                                {/* Customer Info */}
+                                <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                    <span className="text-text-muted text-xs block mb-3 uppercase tracking-wider font-medium">Customer Information</span>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-11 h-11 rounded-full bg-accent-emerald/15 text-accent-emerald flex items-center justify-center font-bold text-lg">
+                                            {selectedBooking.user?.name?.[0]?.toUpperCase() || 'U'}
+                                        </div>
+                                        <div>
+                                            <p className="text-white font-semibold">{selectedBooking.user?.name || 'Unknown'}</p>
+                                            <div className="flex items-center gap-3 text-text-muted text-xs mt-0.5">
+                                                <span className="flex items-center gap-1"><HiMail className="text-sm" /> {selectedBooking.user?.email}</span>
+                                                {selectedBooking.user?.mobile && <span className="flex items-center gap-1"><HiPhone className="text-sm" /> {selectedBooking.user.mobile}</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Event & Venue Info */}
+                                <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-4">
+                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                        <span className="text-text-muted text-xs block mb-1">Venue</span>
+                                        <span className="text-white font-medium">{selectedBooking.venue?.name}</span>
+                                        <p className="text-text-muted text-xs mt-0.5">{selectedBooking.venue?.area}, {selectedBooking.venue?.city}</p>
+                                    </div>
+                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                        <span className="text-text-muted text-xs block mb-1">Event Type</span>
+                                        <span className="text-white font-medium capitalize">{selectedBooking.eventType}</span>
+                                    </div>
+                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                        <span className="text-text-muted text-xs block mb-1">Event Date</span>
+                                        <span className="text-white font-medium flex items-center gap-1.5">
+                                            <HiCalendar className="text-accent-emerald" />
+                                            {new Date(selectedBooking.eventDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                        </span>
+                                        {selectedBooking.eventTime?.start && (
+                                            <p className="text-text-muted text-xs mt-0.5 flex items-center gap-1"><HiClock className="text-sm" /> {selectedBooking.eventTime.start} - {selectedBooking.eventTime.end}</p>
+                                        )}
+                                    </div>
+                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                        <span className="text-text-muted text-xs block mb-1">Guest Count</span>
+                                        <span className="text-white font-medium flex items-center gap-1.5">
+                                            <HiUserGroup className="text-accent-emerald" /> {selectedBooking.guestCount} guests
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Package Selected */}
+                                {selectedBooking.packageSelected?.name && (
+                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                        <span className="text-text-muted text-xs block mb-2 uppercase tracking-wider font-medium">Package Selected</span>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-white font-semibold">{selectedBooking.packageSelected.name}</span>
+                                            <span className="text-accent-emerald font-bold">₹{selectedBooking.packageSelected.price?.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        {selectedBooking.packageSelected.includes?.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 mt-2">
+                                                {selectedBooking.packageSelected.includes.map((item, i) => (
+                                                    <span key={i} className="px-2 py-0.5 bg-accent-emerald/10 text-accent-emerald border border-accent-emerald/15 rounded-full text-[10px] flex items-center gap-1"><HiCheck className="text-[10px]" /> {item}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Add-ons */}
+                                {selectedBooking.addOns?.length > 0 && (
+                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                        <span className="text-text-muted text-xs block mb-2 uppercase tracking-wider font-medium">Add-ons</span>
+                                        <div className="space-y-1.5">
+                                            {selectedBooking.addOns.map((addon, i) => (
+                                                <div key={i} className="flex items-center justify-between text-sm">
+                                                    <span className="text-text-secondary">{addon.name}</span>
+                                                    <span className="text-white font-medium">₹{addon.price?.toLocaleString('en-IN')}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Pricing Breakdown */}
+                                <div className="p-4 bg-gradient-to-br from-accent-emerald/5 to-teal-500/5 border border-accent-emerald/15 rounded-xl">
+                                    <span className="text-text-muted text-xs block mb-3 uppercase tracking-wider font-medium">Pricing Breakdown</span>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-text-secondary">Base Price</span>
+                                            <span className="text-white">₹{selectedBooking.pricing?.basePrice?.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        {selectedBooking.pricing?.addOnsTotal > 0 && (
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-text-secondary">Add-ons</span>
+                                                <span className="text-white">₹{selectedBooking.pricing.addOnsTotal.toLocaleString('en-IN')}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-text-secondary">Tax (18% GST)</span>
+                                            <span className="text-white">₹{selectedBooking.pricing?.tax?.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        <div className="border-t border-border-default my-2" />
+                                        <div className="flex justify-between text-base font-bold">
+                                            <span className="text-white">Total Amount</span>
+                                            <span className="text-accent-emerald">₹{selectedBooking.pricing?.totalAmount?.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm mt-1">
+                                            <span className="text-text-secondary">Advance (20%)</span>
+                                            <span className="text-blue-400 font-medium">₹{selectedBooking.pricing?.advanceAmount?.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-text-secondary">Remaining</span>
+                                            <span className="text-accent-gold font-medium">₹{selectedBooking.pricing?.remainingAmount?.toLocaleString('en-IN')}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Special Notes */}
+                                {selectedBooking.specialNotes && (
+                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                        <span className="text-text-muted text-xs block mb-2 uppercase tracking-wider font-medium">Special Notes</span>
+                                        <p className="text-text-secondary text-sm leading-relaxed">{selectedBooking.specialNotes}</p>
+                                    </div>
+                                )}
+
+                                {/* Booking Timeline */}
+                                <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
+                                    <span className="text-text-muted text-xs block mb-2 uppercase tracking-wider font-medium">Booking Info</span>
+                                    <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-3 text-sm">
+                                        <div>
+                                            <span className="text-text-muted text-xs">Booked On</span>
+                                            <p className="text-white">{new Date(selectedBooking.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                        </div>
+                                        {selectedBooking.razorpayPaymentId && (
+                                            <div>
+                                                <span className="text-text-muted text-xs">Payment ID</span>
+                                                <p className="text-white text-xs font-mono">{selectedBooking.razorpayPaymentId}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Modal Footer — Actions */}
+                            {(selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed') && (
+                                <div className="flex items-center justify-end gap-2 p-5 border-t border-border-default bg-white/[0.01] rounded-b-2xl">
+                                    {selectedBooking.status === 'pending' && (
+                                        <>
+                                            <button onClick={() => { updateStatus(selectedBooking._id, 'confirmed'); setSelectedBooking(prev => ({ ...prev, status: 'confirmed' })); }} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent-emerald text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent-emerald/25">
+                                                <HiCheck /> Accept Booking
+                                            </button>
+                                            <button onClick={() => { updateStatus(selectedBooking._id, 'cancelled'); setSelectedBooking(prev => ({ ...prev, status: 'cancelled' })); }} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent/25">
+                                                <HiXCircle /> Decline
+                                            </button>
+                                        </>
+                                    )}
+                                    {selectedBooking.status === 'confirmed' && (
+                                        <>
+                                            <button onClick={() => { updateStatus(selectedBooking._id, 'completed'); setSelectedBooking(prev => ({ ...prev, status: 'completed' })); }} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent-emerald text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent-emerald/25">
+                                                <HiCheck /> Mark Completed
+                                            </button>
+                                            <button onClick={() => { if (window.confirm('Cancel this booking? If paid, a refund will be initiated.')) { updateStatus(selectedBooking._id, 'cancelled'); setSelectedBooking(prev => ({ ...prev, status: 'cancelled' })); } }} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent/25">
+                                                <HiXCircle /> Cancel
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div >
     );
 }
