@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Venue = require('../models/Venue');
 const Booking = require('../models/Booking');
 const Availability = require('../models/Availability');
+const { sendVenueStatusEmailToVendor } = require('../utils/emailService');
 
 // @desc    Get Admin Dashboard Stats
 // @route   GET /api/admin/stats
@@ -84,13 +85,16 @@ exports.updateVenueStatus = async (req, res) => {
             req.params.id,
             { isApproved, rejectionReason: isApproved ? '' : rejectionReason },
             { new: true }
-        );
+        ).populate('owner', 'name email');
 
         if (!venue) {
             return res.status(404).json({ success: false, message: 'Venue not found' });
         }
 
-        // Logic to notify vendor could be added here
+        // Send email notification to the vendor
+        if (venue.owner?.email) {
+            sendVenueStatusEmailToVendor(venue, venue.owner.email, isApproved, rejectionReason);
+        }
 
         res.status(200).json({ success: true, venue });
     } catch (error) {

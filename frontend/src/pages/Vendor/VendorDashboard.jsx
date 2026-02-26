@@ -34,6 +34,9 @@ export default function VendorDashboard() {
     const [activeNav, setActiveNav] = useState('dashboard');
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [selectedBooking, setSelectedBooking] = useState(null);
+    const [cancelModal, setCancelModal] = useState({ open: false, bookingId: null, bookingName: '' });
+    const [cancelReason, setCancelReason] = useState('');
+    const [cancelLoading, setCancelLoading] = useState(false);
     const [stats, setStats] = useState([
         { label: 'Total Bookings', value: '0', icon: <HiCalendar />, change: '', color: '#10B981' },
         { label: 'Revenue', value: '₹0', icon: <HiCurrencyRupee />, change: '', color: '#8B5CF6' },
@@ -82,6 +85,32 @@ export default function VendorDashboard() {
 
     const handleLogout = () => {
         logout();
+    };
+
+    const openCancelModal = (bookingId, bookingName) => {
+        setCancelModal({ open: true, bookingId, bookingName });
+        setCancelReason('');
+    };
+
+    const handleCancelWithReason = async () => {
+        if (!cancelReason.trim()) {
+            toast.error('Please enter a reason for cancellation');
+            return;
+        }
+        setCancelLoading(true);
+        try {
+            await updateStatus(cancelModal.bookingId, 'cancelled', cancelReason.trim());
+            // Update selected booking modal state if open
+            if (selectedBooking?._id === cancelModal.bookingId) {
+                setSelectedBooking(prev => prev ? ({ ...prev, status: 'cancelled' }) : null);
+            }
+            setCancelModal({ open: false, bookingId: null, bookingName: '' });
+            setCancelReason('');
+        } catch (err) {
+            // handled in hook
+        } finally {
+            setCancelLoading(false);
+        }
     };
 
     const handleSettingsSave = async () => {
@@ -236,13 +265,13 @@ export default function VendorDashboard() {
                                             {b.status === 'pending' && (
                                                 <>
                                                     <button onClick={() => updateStatus(b._id, 'confirmed')} className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all duration-300"><HiCheck /> Accept</button>
-                                                    <button onClick={() => updateStatus(b._id, 'cancelled')} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all duration-300"><HiXCircle /> Decline</button>
+                                                    <button onClick={() => openCancelModal(b._id, b.user?.name || b.bookingId)} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all duration-300"><HiXCircle /> Decline</button>
                                                 </>
                                             )}
                                             {b.status === 'confirmed' && (
                                                 <>
                                                     <button onClick={() => updateStatus(b._id, 'completed')} className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all duration-300"><HiCheck /> Mark Completed</button>
-                                                    <button onClick={() => { if (window.confirm('Cancel this booking? If paid, a refund will be initiated.')) updateStatus(b._id, 'cancelled'); }} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all duration-300"><HiXCircle /> Cancel</button>
+                                                    <button onClick={() => openCancelModal(b._id, b.user?.name || b.bookingId)} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all duration-300"><HiXCircle /> Cancel</button>
                                                 </>
                                             )}
                                         </div>
@@ -710,7 +739,7 @@ export default function VendorDashboard() {
                                             <button onClick={() => { updateStatus(selectedBooking._id, 'confirmed'); setSelectedBooking(prev => ({ ...prev, status: 'confirmed' })); }} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent-emerald text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent-emerald/25">
                                                 <HiCheck /> Accept Booking
                                             </button>
-                                            <button onClick={() => { updateStatus(selectedBooking._id, 'cancelled'); setSelectedBooking(prev => ({ ...prev, status: 'cancelled' })); }} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent/25">
+                                            <button onClick={() => openCancelModal(selectedBooking._id, selectedBooking.user?.name || selectedBooking.bookingId)} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent/25">
                                                 <HiXCircle /> Decline
                                             </button>
                                         </>
@@ -720,13 +749,83 @@ export default function VendorDashboard() {
                                             <button onClick={() => { updateStatus(selectedBooking._id, 'completed'); setSelectedBooking(prev => ({ ...prev, status: 'completed' })); }} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent-emerald text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent-emerald/25">
                                                 <HiCheck /> Mark Completed
                                             </button>
-                                            <button onClick={() => { if (window.confirm('Cancel this booking? If paid, a refund will be initiated.')) { updateStatus(selectedBooking._id, 'cancelled'); setSelectedBooking(prev => ({ ...prev, status: 'cancelled' })); } }} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent/25">
+                                            <button onClick={() => openCancelModal(selectedBooking._id, selectedBooking.user?.name || selectedBooking.bookingId)} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent/25">
                                                 <HiXCircle /> Cancel
                                             </button>
                                         </>
                                     )}
                                 </div>
                             )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ==================== CANCEL REASON MODAL ==================== */}
+            <AnimatePresence>
+                {cancelModal.open && (
+                    <motion.div
+                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        onClick={() => setCancelModal({ open: false, bookingId: null, bookingName: '' })}
+                    >
+                        <motion.div
+                            className="bg-bg-secondary border border-border-default rounded-2xl w-full max-w-md shadow-2xl"
+                            initial={{ opacity: 0, y: 30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.95 }}
+                            transition={{ type: 'spring', damping: 25 }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="p-5 border-b border-border-default">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-accent/15 text-accent text-xl">
+                                        <HiXCircle />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white">Cancel Booking</h3>
+                                        <p className="text-text-muted text-xs">for {cancelModal.bookingName}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Body */}
+                            <div className="p-5 space-y-4">
+                                <div>
+                                    <label className="text-xs font-medium text-text-muted mb-2 block uppercase tracking-wide">
+                                        Reason for Cancellation <span className="text-accent">*</span>
+                                    </label>
+                                    <textarea
+                                        value={cancelReason}
+                                        onChange={(e) => setCancelReason(e.target.value)}
+                                        rows={3}
+                                        className="w-full px-4 py-3 bg-white/[0.03] border border-border-default rounded-xl text-white text-sm outline-none focus:border-accent focus:shadow-[0_0_0_3px_rgba(255,107,107,0.15)] transition-all resize-none placeholder:text-text-muted"
+                                        placeholder="e.g., Venue unavailable on that date, Double booking, Maintenance work..."
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="p-3 bg-accent/5 border border-accent/15 rounded-lg">
+                                    <p className="text-text-secondary text-xs leading-relaxed">
+                                        ⚠️ The customer will receive an <strong className="text-white">email notification</strong> with this reason. If payment was made, a refund will be automatically initiated.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-end gap-2 p-5 border-t border-border-default">
+                                <button
+                                    onClick={() => setCancelModal({ open: false, bookingId: null, bookingName: '' })}
+                                    className="px-5 py-2.5 bg-white/5 border border-border-default rounded-xl text-text-secondary text-sm font-medium hover:text-white hover:bg-white/10 transition-all"
+                                >
+                                    Go Back
+                                </button>
+                                <button
+                                    onClick={handleCancelWithReason}
+                                    disabled={cancelLoading || !cancelReason.trim()}
+                                    className="flex items-center gap-1.5 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <HiXCircle /> {cancelLoading ? 'Cancelling...' : 'Confirm Cancellation'}
+                                </button>
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}

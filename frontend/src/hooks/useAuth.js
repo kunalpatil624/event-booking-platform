@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
@@ -16,7 +16,7 @@ import {
 axios.defaults.withCredentials = true;
 
 // Axios interceptor: attach token from Redux store on every request
-const interceptorId = axios.interceptors.request.use((config) => {
+axios.interceptors.request.use((config) => {
     const { token } = store.getState().auth;
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -28,15 +28,6 @@ export default function useAuth() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { user, token, loading } = useSelector((state) => state.auth);
-    const hasFetched = useRef(false);
-
-    // Fetch user on mount (only once)
-    useEffect(() => {
-        if (!hasFetched.current) {
-            hasFetched.current = true;
-            dispatch(fetchCurrentUser());
-        }
-    }, [dispatch]);
 
     const login = useCallback(async (payload) => {
         const result = await dispatch(loginUser(payload));
@@ -82,7 +73,6 @@ export default function useAuth() {
     }, [dispatch]);
 
     const setUser = useCallback(() => {
-        // kept for backward compatibility, refetch user instead
         dispatch(fetchCurrentUser());
     }, [dispatch]);
 

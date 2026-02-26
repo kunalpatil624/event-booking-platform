@@ -1,6 +1,7 @@
 const Booking = require('../models/Booking');
 const Venue = require('../models/Venue');
 const Availability = require('../models/Availability');
+const { sendNewBookingEmailToAdmin, sendBookingConfirmationToUser, sendBookingStatusUpdateToUser } = require('../utils/emailService');
 
 // @desc    Create booking
 // @route   POST /api/bookings
@@ -117,7 +118,7 @@ exports.getBooking = async (req, res) => {
 // @route   PUT /api/bookings/:id/status
 exports.updateBookingStatus = async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status, reason } = req.body;
         const booking = await Booking.findById(req.params.id);
 
         if (!booking) {
@@ -136,7 +137,7 @@ exports.updateBookingStatus = async (req, res) => {
                 const refundAmount = booking.pricing.advanceAmount * 100;
                 const refund = await razorpay.payments.refund(booking.razorpayPaymentId, {
                     amount: refundAmount,
-                    notes: { bookingId: booking._id.toString(), reason: 'Booking cancelled by vendor' }
+                    notes: { bookingId: booking._id.toString(), reason: reason || 'Booking cancelled by vendor' }
                 });
                 booking.paymentStatus = 'refunded';
                 booking.razorpayRefundId = refund.id;
@@ -157,7 +158,13 @@ exports.updateBookingStatus = async (req, res) => {
             );
         }
 
-        const updated = await Booking.findById(booking._id).populate('venue', 'name city area');
+        const updated = await Booking.findById(booking._id)
+            .populate('venue', 'name city area')
+            .populate('user', 'name email mobile');
+
+        // Send email notification to user about status change
+        sendBookingStatusUpdateToUser(updated, status, reason);
+
         res.status(200).json({ success: true, booking: updated, refund: refundInfo });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -254,7 +261,12 @@ exports.cancelMyBooking = async (req, res) => {
             { isAvailable: true, isLocked: false, lockedBy: null, booking: null }
         );
 
-        const updated = await Booking.findById(booking._id).populate('venue', 'name city area');
+        const updated = await Booking.findById(booking._id)
+            .populate('venue', 'name city area')
+            .populate('user', 'name email mobile');
+
+        // Send cancellation email to user
+        sendBookingStatusUpdateToUser(updated, 'cancelled', 'Cancelled by you');
 
         res.status(200).json({ success: true, booking: updated, refund: refundInfo });
     } catch (error) {

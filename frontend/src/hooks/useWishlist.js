@@ -16,7 +16,7 @@ export default function useWishlist() {
         if (user) {
             setWishlistIds(user.wishlist?.map(v => v._id || v) || []);
         }
-    }, [user]);
+    }, [user?._id, user?.wishlist]);
 
     const isLiked = (venueId) => wishlistIds.includes(venueId);
 
@@ -46,10 +46,14 @@ export default function useWishlist() {
 export function useMyWishlist() {
     const [wishlist, setWishlist] = useState([]);
     const [loading, setLoading] = useState(true);
-    const { user } = useAuth();
+    const { user, loading: loadingUser } = useAuth();
 
     useEffect(() => {
-        if (!user) return;
+        if (loadingUser) return;
+        if (!user) {
+            setLoading(false);
+            return;
+        }
         const fetchWishlist = async () => {
             setLoading(true);
             try {
@@ -62,7 +66,7 @@ export function useMyWishlist() {
             }
         };
         fetchWishlist();
-    }, [user]);
+    }, [user?._id, loadingUser]);
 
     return { wishlist, loading, setWishlist };
 }

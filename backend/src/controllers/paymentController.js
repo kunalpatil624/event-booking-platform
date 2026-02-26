@@ -1,6 +1,7 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Booking = require('../models/Booking');
+const { sendNewBookingEmailToAdmin, sendBookingConfirmationToUser } = require('../utils/emailService');
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -93,6 +94,10 @@ exports.verifyPayment = async (req, res) => {
         const updatedBooking = await Booking.findById(bookingId)
             .populate('venue', 'name city area images address')
             .populate('user', 'name email mobile');
+
+        // Send email notifications after successful payment
+        sendNewBookingEmailToAdmin(updatedBooking);
+        sendBookingConfirmationToUser(updatedBooking);
 
         res.status(200).json({
             success: true,

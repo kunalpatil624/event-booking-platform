@@ -1,4 +1,6 @@
 const Venue = require('../models/Venue');
+const User = require('../models/User');
+const { sendNewVenueEmailToAdmin } = require('../utils/emailService');
 
 // @desc    Get all venues with filters
 // @route   GET /api/venues
@@ -114,6 +116,11 @@ exports.createVenue = async (req, res) => {
         console.log('User ID:', req.user._id);
         req.body.owner = req.user._id;
         const venue = await Venue.create(req.body);
+
+        // Send email notification to admin
+        const vendor = await User.findById(req.user._id).select('name email mobile');
+        sendNewVenueEmailToAdmin(venue, vendor);
+
         res.status(201).json({ success: true, venue });
     } catch (error) {
         console.error('Create Venue Error:', error);

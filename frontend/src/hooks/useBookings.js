@@ -60,9 +60,9 @@ export function useVendorBookings() {
         fetchBookings();
     }, [fetchBookings]);
 
-    const updateStatus = async (id, status) => {
+    const updateStatus = async (id, status, reason = '') => {
         try {
-            const { data } = await axios.put(`${API_URL}/bookings/${id}/status`, { status }, { withCredentials: true });
+            const { data } = await axios.put(`${API_URL}/bookings/${id}/status`, { status, reason }, { withCredentials: true });
             if (data.success) {
                 toast.success(`Booking ${status}`);
                 setBookings(prev => prev.map(b => b._id === id ? { ...b, status } : b));
