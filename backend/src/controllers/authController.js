@@ -5,14 +5,23 @@ const { sendTokenResponse } = require('../utils/tokenHelper');
 // @route   POST /api/auth/register
 exports.register = async (req, res) => {
     try {
-        const { name, email, mobile, password, role } = req.body;
+        const { name, email, mobile, password, role, businessName, vendorDetails } = req.body;
 
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'Email already registered' });
         }
 
-        const user = await User.create({ name, email, mobile, password, role: role || 'user' });
+        const userData = { name, email, mobile, password, role: role || 'user' };
+
+        // Add vendor-specific fields
+        if (role === 'vendor') {
+            userData.businessName = businessName;
+            userData.vendorDetails = vendorDetails || {};
+            userData.vendorStatus = 'pending';
+        }
+
+        const user = await User.create(userData);
         sendTokenResponse(user, 201, res);
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

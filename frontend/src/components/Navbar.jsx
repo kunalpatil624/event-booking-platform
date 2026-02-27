@@ -48,7 +48,7 @@ export default function Navbar() {
                         { to: '/about', label: 'About' },
                         { to: '/venues', label: 'Venues' },
                         { to: '/venues?featured=true', label: 'Featured' },
-                        { to: '/vendor', label: 'List Venue' },
+                        { to: '/list-your-venue', label: 'List Your Venue' },
                     ].map(link => (
                         <Link key={link.to} to={link.to} className="text-sm font-medium text-text-secondary hover:text-white transition-all duration-300 relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-0.5 after:bg-gradient-to-r after:from-primary after:to-primary-light after:transition-all after:duration-300 hover:after:w-full">
                             {link.label}
@@ -106,8 +106,8 @@ export default function Navbar() {
                             { to: '/about', label: 'About' },
                             { to: '/venues', label: 'Venues' },
                             { to: '/venues?featured=true', label: 'Featured' },
-                            { to: '/wishlist', label: '❤️ My Likes' },
-                            { to: '/vendor', label: 'List Your Venue' },
+                            { to: '/wishlist', label: 'My Likes' },
+                            { to: '/list-your-venue', label: 'List Your Venue' },
                         ].map(link => (
                             <Link key={link.to} to={link.to} className="py-3.5 px-4 text-base font-medium text-text-secondary rounded-xl hover:bg-white/5 hover:text-white transition-all duration-300" onClick={() => setMenuOpen(false)}>
                                 {link.label}
@@ -136,12 +136,7 @@ export default function Navbar() {
                             </Link>
                         )}
 
-                        <Link to="/vendor" className="py-3.5 px-4 text-base font-medium text-text-secondary rounded-xl hover:bg-white/5 hover:text-white transition-all duration-300" onClick={() => setMenuOpen(false)}>
-                            <HiOfficeBuilding className="inline mr-2" /> Venue Owner
-                        </Link>
-                        <Link to="/admin" className="py-3.5 px-4 text-base font-medium text-text-secondary rounded-xl hover:bg-white/5 hover:text-white transition-all duration-300" onClick={() => setMenuOpen(false)}>
-                            <HiShieldCheck className="inline mr-2" /> Admin
-                        </Link>
+
                     </motion.div>
                 )}
             </AnimatePresence>

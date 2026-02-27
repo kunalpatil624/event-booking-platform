@@ -1,7 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-require('dotenv').config();
+const session = require('express-session');
+const passport = require('./config/passport');
 
 const connectDB = require('./config/db');
 
@@ -13,6 +15,7 @@ const reviewRoutes = require('./routes/reviews');
 const uploadRoutes = require('./routes/upload');
 const adminRoutes = require('./routes/admin');
 const paymentRoutes = require('./routes/payments');
+const googleAuthRoutes = require('./routes/googleAuth');
 
 const app = express();
 
@@ -43,8 +46,24 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Session (required for Passport OAuth redirect flow)
+app.use(session({
+    secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || 'google_oauth_secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    },
+}));
+
+// Passport initialization
+app.use(passport.initialize());
+
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', googleAuthRoutes);
 app.use('/api/venues', venueRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);

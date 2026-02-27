@@ -24,7 +24,10 @@ const sendTokenResponse = (user, statusCode, res) => {
         email: user.email,
         mobile: user.mobile,
         role: user.role,
-        avatar: user.avatar
+        avatar: user.avatar,
+        vendorStatus: user.vendorStatus,
+        businessName: user.businessName,
+        vendorDetails: user.vendorDetails
     };
 
     res.status(statusCode)

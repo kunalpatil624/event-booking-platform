@@ -21,9 +21,12 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: [true, 'Password is required'],
         minlength: 6,
         select: false
+    },
+    googleId: {
+        type: String,
+        default: null
     },
     role: {
         type: String,
@@ -41,6 +44,29 @@ const userSchema = new mongoose.Schema({
     isVerified: {
         type: Boolean,
         default: false
+    },
+    // Vendor-specific fields
+    businessName: {
+        type: String,
+        trim: true,
+        maxlength: 100
+    },
+    vendorStatus: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending'
+    },
+    vendorDetails: {
+        city: { type: String, trim: true },
+        address: { type: String, trim: true },
+        venueType: { type: String, enum: ['banquet', 'lawn', 'resort', 'hotel', 'farmhouse', 'community-hall', 'marriage-garden', ''] },
+        description: { type: String, maxlength: 500 },
+        estimatedCapacity: { type: Number },
+        experience: { type: String, maxlength: 200 }
+    },
+    rejectionReason: {
+        type: String,
+        default: ''
     }
 }, {
     timestamps: true

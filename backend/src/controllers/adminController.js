@@ -244,3 +244,46 @@ exports.adminUpdateBookingStatus = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// @desc    Get Pending Vendors
+// @route   GET /api/admin/vendors/pending
+exports.getPendingVendors = async (req, res) => {
+    try {
+        const vendors = await User.find({ role: 'vendor' })
+            .select('-password')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ success: true, count: vendors.length, vendors });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Approve/Reject Vendor
+// @route   PUT /api/admin/vendors/:id/status
+exports.updateVendorStatus = async (req, res) => {
+    try {
+        const { vendorStatus, rejectionReason } = req.body;
+
+        if (!['approved', 'rejected'].includes(vendorStatus)) {
+            return res.status(400).json({ success: false, message: 'Invalid status' });
+        }
+
+        const vendor = await User.findById(req.params.id);
+        if (!vendor || vendor.role !== 'vendor') {
+            return res.status(404).json({ success: false, message: 'Vendor not found' });
+        }
+
+        vendor.vendorStatus = vendorStatus;
+        vendor.rejectionReason = vendorStatus === 'rejected' ? (rejectionReason || '') : '';
+        await vendor.save({ validateBeforeSave: false });
+
+        res.status(200).json({
+            success: true,
+            vendor,
+            message: vendorStatus === 'approved' ? 'Vendor approved successfully' : 'Vendor rejected'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

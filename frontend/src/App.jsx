@@ -16,6 +16,7 @@ import Profile from './pages/Profile/Profile';
 import Wishlist from './pages/Wishlist/Wishlist';
 import About from './pages/About/About';
 import Contact from './pages/Contact/Contact';
+import OAuthSuccess from './pages/Auth/OAuthSuccess';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -56,8 +57,10 @@ function App() {
             <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/oauth-success" element={<OAuthSuccess />} />
                 <Route path="/venues" element={<Venues />} />
                 <Route path="/venues/:id" element={<VenueDetail />} />
+                <Route path="/list-your-venue" element={<VendorLogin />} />
                 <Route path="/vendor" element={<VendorLogin />} />
                 <Route path="/vendor/dashboard" element={<VendorDashboard />} />
                 <Route path="/vendor/add-venue" element={<AddVenue />} />

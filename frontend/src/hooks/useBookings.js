@@ -24,9 +24,9 @@ export function useMyBookings() {
         fetchBookings();
     }, [fetchBookings]);
 
-    const cancelBooking = async (id) => {
+    const cancelBooking = async (id, reason = '') => {
         try {
-            const { data } = await axios.put(`${API_URL}/bookings/${id}/cancel`, {}, { withCredentials: true });
+            const { data } = await axios.put(`${API_URL}/bookings/${id}/cancel`, { reason }, { withCredentials: true });
             if (data.success) {
                 toast.success('Booking cancelled successfully');
                 setBookings(prev => prev.map(b => b._id === id ? { ...b, status: 'cancelled' } : b));

@@ -211,6 +211,7 @@ exports.getVendorBookings = async (req, res) => {
 // @route   PUT /api/bookings/:id/cancel
 exports.cancelMyBooking = async (req, res) => {
     try {
+        const { reason } = req.body;
         const booking = await Booking.findById(req.params.id);
 
         if (!booking) {
@@ -243,7 +244,7 @@ exports.cancelMyBooking = async (req, res) => {
                 const refundAmount = booking.pricing.advanceAmount * 100;
                 const refund = await razorpay.payments.refund(booking.razorpayPaymentId, {
                     amount: refundAmount,
-                    notes: { bookingId: booking._id.toString(), reason: 'Booking cancelled by user' }
+                    notes: { bookingId: booking._id.toString(), reason: reason || 'Booking cancelled by user' }
                 });
                 booking.paymentStatus = 'refunded';
                 booking.razorpayRefundId = refund.id;
@@ -266,7 +267,7 @@ exports.cancelMyBooking = async (req, res) => {
             .populate('user', 'name email mobile');
 
         // Send cancellation email to user
-        sendBookingStatusUpdateToUser(updated, 'cancelled', 'Cancelled by you');
+        sendBookingStatusUpdateToUser(updated, 'cancelled', reason || 'Cancelled by user');
 
         res.status(200).json({ success: true, booking: updated, refund: refundInfo });
     } catch (error) {

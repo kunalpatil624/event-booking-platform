@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 import { useMyBookings } from '../../../hooks/useBookings';
 import { HiCalendar, HiLocationMarker, HiUsers, HiCurrencyRupee, HiEye, HiClock, HiCheckCircle, HiXCircle, HiExclamationCircle, HiBan } from 'react-icons/hi';
 
@@ -16,6 +17,25 @@ export default function MyBookings() {
     const [activeFilter, setActiveFilter] = useState('all');
     const [expandedBooking, setExpandedBooking] = useState(null);
     const [cancelling, setCancelling] = useState(null);
+    const [cancelModal, setCancelModal] = useState({ open: false, bookingId: null, venueName: '' });
+    const [cancelReason, setCancelReason] = useState('');
+
+    const openCancelModal = (bookingId, venueName) => {
+        setCancelModal({ open: true, bookingId, venueName });
+        setCancelReason('');
+    };
+
+    const handleCancelWithReason = async () => {
+        if (!cancelReason.trim()) {
+            toast.error('Please enter a reason for cancellation');
+            return;
+        }
+        setCancelling(cancelModal.bookingId);
+        await cancelBooking(cancelModal.bookingId, cancelReason.trim());
+        setCancelling(null);
+        setCancelModal({ open: false, bookingId: null, venueName: '' });
+        setCancelReason('');
+    };
 
     const filteredBookings = activeFilter === 'all'
         ? bookings
@@ -48,7 +68,7 @@ export default function MyBookings() {
         );
     }
 
-    return (
+    return (<>
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -198,7 +218,7 @@ export default function MyBookings() {
                                                     <div className="flex items-center gap-3 justify-end">
                                                         {(booking.status === 'pending' || booking.status === 'confirmed') && (
                                                             <button
-                                                                onClick={async (e) => { e.stopPropagation(); if (!window.confirm('Are you sure you want to cancel this booking?')) return; setCancelling(booking._id); await cancelBooking(booking._id); setCancelling(null); }}
+                                                                onClick={(e) => { e.stopPropagation(); openCancelModal(booking._id, booking.venue?.name || 'Venue'); }}
                                                                 disabled={cancelling === booking._id}
                                                                 className="flex items-center gap-1.5 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm font-medium hover:bg-red-500/20 transition-all duration-300 disabled:opacity-50"
                                                             >
@@ -241,5 +261,76 @@ export default function MyBookings() {
                 </div>
             )}
         </motion.div>
-    );
+
+        {/* ========= CANCEL REASON MODAL ========= */}
+        <AnimatePresence>
+            {cancelModal.open && (
+                <motion.div
+                    className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    onClick={() => setCancelModal({ open: false, bookingId: null, venueName: '' })}
+                >
+                    <motion.div
+                        className="bg-[#1A1A2E] border border-white/[0.08] rounded-2xl w-full max-w-md shadow-2xl"
+                        initial={{ opacity: 0, y: 30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.95 }}
+                        transition={{ type: 'spring', damping: 25 }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="p-5 border-b border-white/[0.06]">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-500/15 text-red-400 text-xl">
+                                    <HiBan />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white">Cancel Booking</h3>
+                                    <p className="text-white/40 text-xs">{cancelModal.venueName}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-5 space-y-4">
+                            <div>
+                                <label className="text-xs font-medium text-white/40 mb-2 block uppercase tracking-wide">
+                                    Reason for Cancellation <span className="text-red-400">*</span>
+                                </label>
+                                <textarea
+                                    value={cancelReason}
+                                    onChange={(e) => setCancelReason(e.target.value)}
+                                    rows={3}
+                                    className="w-full px-4 py-3 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white text-sm outline-none focus:border-red-400/50 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.1)] transition-all resize-none placeholder:text-white/20"
+                                    placeholder="e.g., Change of plans, Found a better venue, Date conflict..."
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="p-3 bg-red-500/5 border border-red-500/15 rounded-lg">
+                                <p className="text-white/50 text-xs leading-relaxed">
+                                    ⚠️ This action cannot be undone. {' '}
+                                    <strong className="text-white/70">If you have made a payment, a refund will be automatically initiated.</strong>
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-end gap-2 p-5 border-t border-white/[0.06]">
+                            <button
+                                onClick={() => setCancelModal({ open: false, bookingId: null, venueName: '' })}
+                                className="px-5 py-2.5 bg-white/5 border border-white/[0.08] rounded-xl text-white/50 text-sm font-medium hover:text-white hover:bg-white/10 transition-all"
+                            >
+                                Go Back
+                            </button>
+                            <button
+                                onClick={handleCancelWithReason}
+                                disabled={cancelling || !cancelReason.trim()}
+                                className="flex items-center gap-1.5 px-5 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition-all shadow-lg shadow-red-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <HiBan /> {cancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+                            </button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    </>);
 }

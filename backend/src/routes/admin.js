@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAdminStats, getAllVenues, updateVenueStatus, toggleVenueActive, toggleFeatured, getVenueDetail, getAllUsers, getAllBookings, adminUpdateBookingStatus } = require('../controllers/adminController');
+const { getAdminStats, getAllVenues, updateVenueStatus, toggleVenueActive, toggleFeatured, getVenueDetail, getAllUsers, getAllBookings, adminUpdateBookingStatus, getPendingVendors, updateVendorStatus } = require('../controllers/adminController');
 const { protect, authorize } = require('../middleware/auth');
 
 // All routes are protected and require admin role
@@ -16,5 +16,9 @@ router.put('/venues/:id/toggle-featured', toggleFeatured);
 router.get('/users', getAllUsers);
 router.get('/bookings', getAllBookings);
 router.put('/bookings/:id/status', adminUpdateBookingStatus);
+
+// Vendor management
+router.get('/vendors/pending', getPendingVendors);
+router.put('/vendors/:id/status', updateVendorStatus);
 
 module.exports = router;

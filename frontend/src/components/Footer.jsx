@@ -42,6 +42,7 @@ export default function Footer() {
                         <Link to="/privacy" className="text-text-secondary text-sm hover:text-primary-light hover:pl-1 transition-all duration-300">Privacy Policy</Link>
                         <Link to="/terms" className="text-text-secondary text-sm hover:text-primary-light hover:pl-1 transition-all duration-300">Terms of Service</Link>
                         <Link to="/faq" className="text-text-secondary text-sm hover:text-primary-light hover:pl-1 transition-all duration-300">FAQs</Link>
+                        <Link to="/list-your-venue" className="text-accent-emerald text-sm font-medium hover:pl-1 transition-all duration-300">List Your Venue</Link>
                     </div>
                 </div>
                 <div className="flex items-center justify-between max-md:flex-col max-md:gap-2 max-md:text-center py-5 border-t border-border-default text-text-muted text-xs">
