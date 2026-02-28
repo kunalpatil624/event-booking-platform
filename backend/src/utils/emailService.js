@@ -2,17 +2,17 @@ const nodemailer = require('nodemailer');
 
 // Create reusable transporter
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
 });
 
 // Verify connection on startup
 transporter.verify()
-    .then(() => console.log('📧 Email service ready'))
-    .catch((err) => console.error('❌ Email service error:', err.message));
+  .then(() => console.log('📧 Email service ready'))
+  .catch((err) => console.error('❌ Email service error:', err.message));
 
 // ─── Base HTML wrapper ───────────────────────────────────────────
 const wrapHtml = (title, body) => `
@@ -65,20 +65,57 @@ const badge = (text, bgColor = '#6C3CE1') => `
 `;
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  OTP Email
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+exports.sendOtpEmail = async (email, otp) => {
+  try {
+    const body = `
+      <div style="margin-bottom:24px;">
+        <div style="margin-bottom:8px;">${badge('Verification', '#6C3CE1')}</div>
+        <h1 style="margin:8px 0 4px;color:#FFFFFF;font-size:22px;font-weight:700;">Verify Your Email 📧</h1>
+        <p style="margin:0;color:#A0A0B8;font-size:14px;">Use the code below to verify your email address and complete your registration.</p>
+      </div>
+      
+      <div style="text-align:center;padding:28px 20px;background:linear-gradient(135deg,rgba(108,60,225,0.15),rgba(139,92,246,0.1));border:1px solid rgba(108,60,225,0.3);border-radius:16px;margin-bottom:24px;">
+        <p style="margin:0 0 8px;color:#A0A0B8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:2px;">Your Verification Code</p>
+        <p style="margin:0;color:#FFFFFF;font-size:36px;font-weight:800;letter-spacing:8px;font-family:monospace;">${otp}</p>
+      </div>
+      
+      <div style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:12px;padding:16px;text-align:center;">
+        <p style="margin:0;color:#F5A623;font-size:13px;font-weight:600;">⏳ This code expires in 5 minutes</p>
+        <p style="margin:4px 0 0;color:#A0A0B8;font-size:12px;">If you didn't request this, please ignore this email.</p>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: `"EventBook Platform" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `🔐 Your Verification Code: ${otp}`,
+      html: wrapHtml('Email Verification', body),
+    });
+
+    console.log(`📧 OTP email sent to ${email}`);
+  } catch (error) {
+    console.error('❌ Failed to send OTP email:', error.message);
+    throw error;
+  }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  1. NEW BOOKING → Email to Admin
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 exports.sendNewBookingEmailToAdmin = async (booking) => {
-    try {
-        const venueName = booking.venue?.name || 'N/A';
-        const venueCity = booking.venue?.city || '';
-        const userName = booking.user?.name || 'N/A';
-        const userEmail = booking.user?.email || 'N/A';
-        const userMobile = booking.user?.mobile || 'N/A';
-        const eventDate = new Date(booking.eventDate).toLocaleDateString('en-IN', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-        });
+  try {
+    const venueName = booking.venue?.name || 'N/A';
+    const venueCity = booking.venue?.city || '';
+    const userName = booking.user?.name || 'N/A';
+    const userEmail = booking.user?.email || 'N/A';
+    const userMobile = booking.user?.mobile || 'N/A';
+    const eventDate = new Date(booking.eventDate).toLocaleDateString('en-IN', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
 
-        const body = `
+    const body = `
       <!-- Title -->
       <div style="margin-bottom:24px;">
         <div style="margin-bottom:8px;">${badge('New Booking', '#10B981')}</div>
@@ -126,25 +163,25 @@ exports.sendNewBookingEmailToAdmin = async (booking) => {
       ` : ''}
     `;
 
-        await transporter.sendMail({
-            from: `"EventBook Platform" <${process.env.EMAIL_USER}>`,
-            to: process.env.ADMIN_EMAIL,
-            subject: `🎉 New Booking: ${venueName} | ${booking.bookingId}`,
-            html: wrapHtml('New Booking Notification', body),
-        });
+    await transporter.sendMail({
+      from: `"EventBook Platform" <${process.env.EMAIL_USER}>`,
+      to: process.env.ADMIN_EMAIL,
+      subject: `🎉 New Booking: ${venueName} | ${booking.bookingId}`,
+      html: wrapHtml('New Booking Notification', body),
+    });
 
-        console.log(`📧 New booking email sent to admin for ${booking.bookingId}`);
-    } catch (error) {
-        console.error('❌ Failed to send new booking email:', error.message);
-    }
+    console.log(`📧 New booking email sent to admin for ${booking.bookingId}`);
+  } catch (error) {
+    console.error('❌ Failed to send new booking email:', error.message);
+  }
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  2. NEW VENUE REGISTERED → Email to Admin
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 exports.sendNewVenueEmailToAdmin = async (venue, vendor) => {
-    try {
-        const body = `
+  try {
+    const body = `
       <!-- Title -->
       <div style="margin-bottom:24px;">
         <div style="margin-bottom:8px;">${badge('New Venue', '#F5A623')}</div>
@@ -182,29 +219,29 @@ exports.sendNewVenueEmailToAdmin = async (venue, vendor) => {
       </div>
     `;
 
-        await transporter.sendMail({
-            from: `"EventBook Platform" <${process.env.EMAIL_USER}>`,
-            to: process.env.ADMIN_EMAIL,
-            subject: `🏛️ New Venue for Approval: ${venue.name} | ${venue.city}`,
-            html: wrapHtml('New Venue Registration', body),
-        });
+    await transporter.sendMail({
+      from: `"EventBook Platform" <${process.env.EMAIL_USER}>`,
+      to: process.env.ADMIN_EMAIL,
+      subject: `🏛️ New Venue for Approval: ${venue.name} | ${venue.city}`,
+      html: wrapHtml('New Venue Registration', body),
+    });
 
-        console.log(`📧 New venue email sent to admin for "${venue.name}"`);
-    } catch (error) {
-        console.error('❌ Failed to send new venue email:', error.message);
-    }
+    console.log(`📧 New venue email sent to admin for "${venue.name}"`);
+  } catch (error) {
+    console.error('❌ Failed to send new venue email:', error.message);
+  }
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  3. VENUE APPROVED/REJECTED → Email to Vendor
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 exports.sendVenueStatusEmailToVendor = async (venue, vendorEmail, isApproved, rejectionReason) => {
-    try {
-        const statusColor = isApproved ? '#10B981' : '#FF6B6B';
-        const statusText = isApproved ? 'Approved' : 'Rejected';
-        const statusEmoji = isApproved ? '✅' : '❌';
+  try {
+    const statusColor = isApproved ? '#10B981' : '#FF6B6B';
+    const statusText = isApproved ? 'Approved' : 'Rejected';
+    const statusEmoji = isApproved ? '✅' : '❌';
 
-        const body = `
+    const body = `
       <!-- Title -->
       <div style="margin-bottom:24px;">
         <div style="margin-bottom:8px;">${badge(statusText, statusColor)}</div>
@@ -213,8 +250,8 @@ exports.sendVenueStatusEmailToVendor = async (venue, vendorEmail, isApproved, re
         </h1>
         <p style="margin:0;color:#A0A0B8;font-size:14px;">
           ${isApproved
-                ? 'Great news! Your venue has been approved and is now live on EventBook.'
-                : 'Unfortunately, your venue submission has been rejected.'}
+        ? 'Great news! Your venue has been approved and is now live on EventBook.'
+        : 'Unfortunately, your venue submission has been rejected.'}
         </p>
       </div>
       
@@ -252,35 +289,35 @@ exports.sendVenueStatusEmailToVendor = async (venue, vendorEmail, isApproved, re
       `}
     `;
 
-        await transporter.sendMail({
-            from: `"EventBook Platform" <${process.env.EMAIL_USER}>`,
-            to: vendorEmail,
-            subject: `${statusEmoji} Your Venue "${venue.name}" has been ${statusText}`,
-            html: wrapHtml(`Venue ${statusText}`, body),
-        });
+    await transporter.sendMail({
+      from: `"EventBook Platform" <${process.env.EMAIL_USER}>`,
+      to: vendorEmail,
+      subject: `${statusEmoji} Your Venue "${venue.name}" has been ${statusText}`,
+      html: wrapHtml(`Venue ${statusText}`, body),
+    });
 
-        console.log(`📧 Venue ${statusText.toLowerCase()} email sent to ${vendorEmail} for "${venue.name}"`);
-    } catch (error) {
-        console.error('❌ Failed to send venue status email:', error.message);
-    }
+    console.log(`📧 Venue ${statusText.toLowerCase()} email sent to ${vendorEmail} for "${venue.name}"`);
+  } catch (error) {
+    console.error('❌ Failed to send venue status email:', error.message);
+  }
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  4. BOOKING CONFIRMATION → Email to User
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 exports.sendBookingConfirmationToUser = async (booking) => {
-    try {
-        const userEmail = booking.user?.email;
-        if (!userEmail) return;
+  try {
+    const userEmail = booking.user?.email;
+    if (!userEmail) return;
 
-        const venueName = booking.venue?.name || 'N/A';
-        const venueCity = booking.venue?.city || '';
-        const venueArea = booking.venue?.area || '';
-        const eventDate = new Date(booking.eventDate).toLocaleDateString('en-IN', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-        });
+    const venueName = booking.venue?.name || 'N/A';
+    const venueCity = booking.venue?.city || '';
+    const venueArea = booking.venue?.area || '';
+    const eventDate = new Date(booking.eventDate).toLocaleDateString('en-IN', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
 
-        const body = `
+    const body = `
       <!-- Title -->
       <div style="margin-bottom:24px;">
         <div style="margin-bottom:8px;">${badge('Booking Confirmed', '#10B981')}</div>
@@ -347,17 +384,17 @@ exports.sendBookingConfirmationToUser = async (booking) => {
       </div>
     `;
 
-        await transporter.sendMail({
-            from: `"EventBook Platform" <${process.env.EMAIL_USER}>`,
-            to: userEmail,
-            subject: `🎉 Booking Confirmed: ${venueName} | ${booking.bookingId}`,
-            html: wrapHtml('Booking Confirmation', body),
-        });
+    await transporter.sendMail({
+      from: `"EventBook Platform" <${process.env.EMAIL_USER}>`,
+      to: userEmail,
+      subject: `🎉 Booking Confirmed: ${venueName} | ${booking.bookingId}`,
+      html: wrapHtml('Booking Confirmation', body),
+    });
 
-        console.log(`📧 Booking confirmation email sent to ${userEmail} for ${booking.bookingId}`);
-    } catch (error) {
-        console.error('❌ Failed to send booking confirmation email:', error.message);
-    }
+    console.log(`📧 Booking confirmation email sent to ${userEmail} for ${booking.bookingId}`);
+  } catch (error) {
+    console.error('❌ Failed to send booking confirmation email:', error.message);
+  }
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -365,25 +402,25 @@ exports.sendBookingConfirmationToUser = async (booking) => {
 //     Triggered from Vendor Dashboard
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 exports.sendBookingStatusUpdateToUser = async (booking, newStatus, reason) => {
-    try {
-        const userEmail = booking.user?.email;
-        if (!userEmail) return;
+  try {
+    const userEmail = booking.user?.email;
+    if (!userEmail) return;
 
-        const venueName = booking.venue?.name || 'N/A';
-        const venueCity = booking.venue?.city || '';
-        const eventDate = new Date(booking.eventDate).toLocaleDateString('en-IN', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-        });
+    const venueName = booking.venue?.name || 'N/A';
+    const venueCity = booking.venue?.city || '';
+    const eventDate = new Date(booking.eventDate).toLocaleDateString('en-IN', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
 
-        const statusMap = {
-            confirmed: { color: '#10B981', emoji: '✅', label: 'Confirmed', title: 'Booking Confirmed!', desc: 'Great news! The venue has confirmed your booking.' },
-            cancelled: { color: '#FF6B6B', emoji: '❌', label: 'Cancelled', title: 'Booking Cancelled', desc: 'Unfortunately, your booking has been cancelled by the venue.' },
-            completed: { color: '#06B6D4', emoji: '🎊', label: 'Completed', title: 'Booking Completed!', desc: 'Your event has been marked as completed. We hope you had a great time!' },
-        };
+    const statusMap = {
+      confirmed: { color: '#10B981', emoji: '✅', label: 'Confirmed', title: 'Booking Confirmed!', desc: 'Great news! The venue has confirmed your booking.' },
+      cancelled: { color: '#FF6B6B', emoji: '❌', label: 'Cancelled', title: 'Booking Cancelled', desc: 'Unfortunately, your booking has been cancelled by the venue.' },
+      completed: { color: '#06B6D4', emoji: '🎊', label: 'Completed', title: 'Booking Completed!', desc: 'Your event has been marked as completed. We hope you had a great time!' },
+    };
 
-        const s = statusMap[newStatus] || { color: '#F5A623', emoji: '📋', label: newStatus, title: `Booking ${newStatus}`, desc: `Your booking status has been updated to ${newStatus}.` };
+    const s = statusMap[newStatus] || { color: '#F5A623', emoji: '📋', label: newStatus, title: `Booking ${newStatus}`, desc: `Your booking status has been updated to ${newStatus}.` };
 
-        const body = `
+    const body = `
       <!-- Title -->
       <div style="margin-bottom:24px;">
         <div style="margin-bottom:8px;">${badge(s.label, s.color)}</div>
@@ -451,15 +488,15 @@ exports.sendBookingStatusUpdateToUser = async (booking, newStatus, reason) => {
       ` : ''}
     `;
 
-        await transporter.sendMail({
-            from: `"EventBook Platform" <${process.env.EMAIL_USER}>`,
-            to: userEmail,
-            subject: `${s.emoji} Booking ${s.label}: ${venueName} | ${booking.bookingId}`,
-            html: wrapHtml(`Booking ${s.label}`, body),
-        });
+    await transporter.sendMail({
+      from: `"EventBook Platform" <${process.env.EMAIL_USER}>`,
+      to: userEmail,
+      subject: `${s.emoji} Booking ${s.label}: ${venueName} | ${booking.bookingId}`,
+      html: wrapHtml(`Booking ${s.label}`, body),
+    });
 
-        console.log(`📧 Booking ${s.label.toLowerCase()} email sent to ${userEmail} for ${booking.bookingId}`);
-    } catch (error) {
-        console.error('❌ Failed to send booking status email:', error.message);
-    }
+    console.log(`📧 Booking ${s.label.toLowerCase()} email sent to ${userEmail} for ${booking.bookingId}`);
+  } catch (error) {
+    console.error('❌ Failed to send booking status email:', error.message);
+  }
 };

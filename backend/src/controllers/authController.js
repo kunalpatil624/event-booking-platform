@@ -1,5 +1,67 @@
 const User = require('../models/User');
 const { sendTokenResponse } = require('../utils/tokenHelper');
+const { sendOtpEmail } = require('../utils/emailService');
+
+// In-memory OTP store (use Redis in production)
+const otpStore = new Map();
+
+// @desc    Send OTP to email
+// @route   POST /api/auth/send-otp
+exports.sendOtp = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+
+        // Check if email already registered
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ success: false, message: 'Email already registered' });
+        }
+
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Store with 5 min expiry
+        otpStore.set(email, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+
+        // Send email
+        await sendOtpEmail(email, otp);
+
+        res.status(200).json({ success: true, message: 'OTP sent to your email' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to send OTP' });
+    }
+};
+
+// @desc    Verify OTP
+// @route   POST /api/auth/verify-otp
+exports.verifyOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        if (!email || !otp) return res.status(400).json({ success: false, message: 'Email and OTP are required' });
+
+        const stored = otpStore.get(email);
+        if (!stored) {
+            return res.status(400).json({ success: false, message: 'OTP expired or not found. Please request a new one.' });
+        }
+
+        if (Date.now() > stored.expiresAt) {
+            otpStore.delete(email);
+            return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
+        }
+
+        if (stored.otp !== otp) {
+            return res.status(400).json({ success: false, message: 'Invalid OTP' });
+        }
+
+        // OTP verified — remove from store
+        otpStore.delete(email);
+
+        res.status(200).json({ success: true, message: 'Email verified successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
 
 // @desc    Register user
 // @route   POST /api/auth/register
