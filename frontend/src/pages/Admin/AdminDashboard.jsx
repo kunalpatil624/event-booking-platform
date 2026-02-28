@@ -13,6 +13,7 @@ import {
 } from 'react-icons/hi';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+import axios from 'axios';
 
 const navItems = [
     { icon: <HiHome />, label: 'Dashboard', id: 'dashboard' },
@@ -20,6 +21,7 @@ const navItems = [
     { icon: <HiCalendar />, label: 'Bookings', id: 'bookings' },
     { icon: <HiUsers />, label: 'Users', id: 'users' },
     { icon: <HiCheckCircle />, label: 'Approvals', id: 'approvals' },
+    { icon: <HiUserGroup />, label: 'Vendor Requests', id: 'vendors' },
 ];
 
 export default function AdminDashboard() {
@@ -36,6 +38,40 @@ export default function AdminDashboard() {
     const [activeNav, setActiveNav] = useState('dashboard');
     const [bookingFilter, setBookingFilter] = useState('all');
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // Vendor requests state
+    const [pendingVendorsList, setPendingVendorsList] = useState([]);
+    const [vendorsLoading, setVendorsLoading] = useState(false);
+
+    // Fetch pending vendors
+    useEffect(() => {
+        const fetchVendors = async () => {
+            setVendorsLoading(true);
+            try {
+                const { data } = await axios.get(`${API_URL}/admin/vendors/pending`, { withCredentials: true });
+                if (data.success) setPendingVendorsList(data.vendors);
+            } catch (err) {
+                console.error('Failed to fetch vendors:', err);
+            } finally {
+                setVendorsLoading(false);
+            }
+        };
+        fetchVendors();
+    }, []);
+
+    const handleVendorApproval = async (vendorId, status) => {
+        const action = status === 'approved' ? 'Approve' : 'Reject';
+        if (!confirm(`${action} this vendor?`)) return;
+        try {
+            const { data } = await axios.put(`${API_URL}/admin/vendors/${vendorId}/status`, { vendorStatus: status }, { withCredentials: true });
+            if (data.success) {
+                setPendingVendorsList(prev => prev.map(v => v._id === vendorId ? { ...v, vendorStatus: status } : v));
+                toast.success(data.message);
+            }
+        } catch (err) {
+            toast.error('Failed to update vendor status');
+        }
+    };
 
     // Booking Detail Modal State
     const [selectedBooking, setSelectedBooking] = useState(null);
@@ -152,6 +188,9 @@ export default function AdminDashboard() {
                             {item.icon}<span>{item.label}</span>
                             {item.id === 'approvals' && pendingVenues.length > 0 && (
                                 <span className="ml-auto px-2 py-0.5 bg-accent-gold/20 text-accent-gold text-[10px] font-bold rounded-full">{pendingVenues.length}</span>
+                            )}
+                            {item.id === 'vendors' && pendingVendorsList.filter(v => v.vendorStatus === 'pending').length > 0 && (
+                                <span className="ml-auto px-2 py-0.5 bg-primary/20 text-primary-light text-[10px] font-bold rounded-full">{pendingVendorsList.filter(v => v.vendorStatus === 'pending').length}</span>
                             )}
                         </button>
                     ))}
@@ -357,6 +396,115 @@ export default function AdminDashboard() {
                                     </tbody>
                                 </table>
                             </div>
+                        </motion.div>
+                    )}
+
+                    {/* ============ VENDOR REQUESTS SECTION ============ */}
+                    {activeNav === 'vendors' && (
+                        <motion.div className="space-y-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                            {/* Filter tabs */}
+                            <div className="flex gap-2">
+                                {['all', 'pending', 'approved', 'rejected'].map(f => (
+                                    <button key={f} onClick={() => setBookingFilter(f)} className={`px-4 py-2 text-sm font-semibold rounded-xl capitalize transition-all border-none cursor-pointer ${bookingFilter === f ? 'bg-primary/15 text-primary-light' : 'text-text-muted hover:text-white hover:bg-white/5 bg-transparent'}`}>{f}</button>
+                                ))}
+                            </div>
+
+                            {vendorsLoading ? (
+                                <div className="text-center py-12 text-text-muted">Loading vendors...</div>
+                            ) : (
+                                pendingVendorsList
+                                    .filter(v => bookingFilter === 'all' || v.vendorStatus === bookingFilter)
+                                    .map(vendor => (
+                                        <div key={vendor._id} className="bg-bg-card border border-border-default rounded-2xl overflow-hidden">
+                                            <div className="p-5 flex items-start justify-between gap-4 max-md:flex-col">
+                                                <div className="flex items-start gap-4 flex-1">
+                                                    <div className="w-14 h-14 rounded-2xl bg-primary/15 text-primary-light flex items-center justify-center font-bold text-xl shrink-0">
+                                                        {vendor.name?.[0]?.toUpperCase() || 'V'}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                            <h3 className="text-base font-semibold text-white">{vendor.name}</h3>
+                                                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider border ${vendor.vendorStatus === 'approved' ? 'bg-accent-emerald/15 text-accent-emerald border-accent-emerald/20' :
+                                                                vendor.vendorStatus === 'rejected' ? 'bg-accent/15 text-accent border-accent/20' :
+                                                                    'bg-accent-gold/15 text-accent-gold border-accent-gold/20'
+                                                                }`}>{vendor.vendorStatus || 'pending'}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-3 text-text-muted text-xs flex-wrap">
+                                                            <span className="flex items-center gap-1"><HiMail className="text-sm" /> {vendor.email}</span>
+                                                            {vendor.mobile && <span className="flex items-center gap-1"><HiPhone className="text-sm" /> {vendor.mobile}</span>}
+                                                        </div>
+                                                        {vendor.businessName && (
+                                                            <p className="text-white text-sm font-medium mt-2 flex items-center gap-1.5">
+                                                                <HiOfficeBuilding className="text-primary-light" /> {vendor.businessName}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {vendor.vendorStatus === 'pending' && (
+                                                    <div className="flex gap-2 shrink-0">
+                                                        <button onClick={() => handleVendorApproval(vendor._id, 'approved')} className="flex items-center gap-1.5 px-4 py-2 bg-accent-emerald/10 border border-accent-emerald/20 rounded-xl text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all">
+                                                            <HiCheck /> Approve
+                                                        </button>
+                                                        <button onClick={() => handleVendorApproval(vendor._id, 'rejected')} className="flex items-center gap-1.5 px-4 py-2 bg-accent/10 border border-accent/20 rounded-xl text-accent text-xs font-semibold hover:bg-accent/20 transition-all">
+                                                            <HiXCircle /> Reject
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Vendor Details */}
+                                            {vendor.vendorDetails && (
+                                                <div className="px-5 pb-5 pt-0">
+                                                    <div className="grid grid-cols-4 max-lg:grid-cols-2 max-sm:grid-cols-1 gap-3">
+                                                        {vendor.vendorDetails.city && (
+                                                            <div className="p-3 bg-white/[0.03] border border-border-default rounded-xl">
+                                                                <span className="text-text-muted text-[10px] uppercase tracking-wider block mb-1">City</span>
+                                                                <span className="text-white text-sm font-medium">{vendor.vendorDetails.city}</span>
+                                                            </div>
+                                                        )}
+                                                        {vendor.vendorDetails.venueType && (
+                                                            <div className="p-3 bg-white/[0.03] border border-border-default rounded-xl">
+                                                                <span className="text-text-muted text-[10px] uppercase tracking-wider block mb-1">Venue Type</span>
+                                                                <span className="text-white text-sm font-medium capitalize">{vendor.vendorDetails.venueType.replace('-', ' ')}</span>
+                                                            </div>
+                                                        )}
+                                                        {vendor.vendorDetails.estimatedCapacity && (
+                                                            <div className="p-3 bg-white/[0.03] border border-border-default rounded-xl">
+                                                                <span className="text-text-muted text-[10px] uppercase tracking-wider block mb-1">Est. Capacity</span>
+                                                                <span className="text-white text-sm font-medium">{vendor.vendorDetails.estimatedCapacity} guests</span>
+                                                            </div>
+                                                        )}
+                                                        {vendor.vendorDetails.experience && (
+                                                            <div className="p-3 bg-white/[0.03] border border-border-default rounded-xl">
+                                                                <span className="text-text-muted text-[10px] uppercase tracking-wider block mb-1">Experience</span>
+                                                                <span className="text-white text-sm font-medium">{vendor.vendorDetails.experience}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {vendor.vendorDetails.address && (
+                                                        <div className="p-3 bg-white/[0.03] border border-border-default rounded-xl mt-3">
+                                                            <span className="text-text-muted text-[10px] uppercase tracking-wider block mb-1">Address</span>
+                                                            <span className="text-white text-sm">{vendor.vendorDetails.address}</span>
+                                                        </div>
+                                                    )}
+                                                    {vendor.vendorDetails.description && (
+                                                        <div className="p-3 bg-white/[0.03] border border-border-default rounded-xl mt-3">
+                                                            <span className="text-text-muted text-[10px] uppercase tracking-wider block mb-1">Description</span>
+                                                            <p className="text-text-secondary text-sm leading-relaxed">{vendor.vendorDetails.description}</p>
+                                                        </div>
+                                                    )}
+                                                    <p className="text-text-muted text-xs mt-3">Registered on {new Date(vendor.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                            )}
+                            {!vendorsLoading && pendingVendorsList.filter(v => bookingFilter === 'all' || v.vendorStatus === bookingFilter).length === 0 && (
+                                <div className="bg-bg-card border border-border-default rounded-2xl p-12 text-center">
+                                    <HiUserGroup className="text-4xl text-white/10 mx-auto mb-3" />
+                                    <p className="text-text-muted">No {bookingFilter !== 'all' ? bookingFilter : ''} vendor requests found.</p>
+                                </div>
+                            )}
                         </motion.div>
                     )}
                 </div>

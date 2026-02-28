@@ -150,6 +150,70 @@ export default function VendorDashboard() {
 
     if (loading) return <div className="flex items-center justify-center h-screen bg-bg-primary text-white">Loading Dashboard...</div>;
 
+    // Block dashboard if vendor not approved
+    if (vendorUser?.role === 'vendor' && vendorUser?.vendorStatus !== 'approved') {
+        return (
+            <div className="min-h-screen flex items-center justify-center p-10 px-6 bg-bg-primary relative overflow-hidden">
+                <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.12)_0%,transparent_70%)] -top-[150px] -left-[150px]" />
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
+                </div>
+                <motion.div className="w-full max-w-lg bg-bg-card border border-border-default rounded-3xl p-10 text-center relative z-[2] shadow-[0_8px_32px_rgba(0,0,0,0.5)]" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
+                    {vendorUser.vendorStatus === 'rejected' ? (
+                        <>
+                            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-accent/15 flex items-center justify-center">
+                                <HiXCircle className="text-accent text-4xl" />
+                            </div>
+                            <h2 className="font-display text-2xl font-bold text-white mb-3">Application Rejected</h2>
+                            <p className="text-text-secondary text-sm mb-6 leading-relaxed max-w-sm mx-auto">
+                                Unfortunately, your vendor application was not approved. Please contact our support team for more details.
+                            </p>
+                            {vendorUser.rejectionReason && (
+                                <div className="p-4 bg-accent/[0.08] border border-accent/20 rounded-xl mb-6 text-left">
+                                    <p className="text-accent text-xs font-semibold mb-1">Reason:</p>
+                                    <p className="text-text-secondary text-sm">{vendorUser.rejectionReason}</p>
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-accent-gold/15 flex items-center justify-center">
+                                <HiClock className="text-accent-gold text-4xl" />
+                            </div>
+                            <h2 className="font-display text-2xl font-bold text-white mb-3">Account Under Review</h2>
+                            <p className="text-text-secondary text-sm mb-6 leading-relaxed max-w-sm mx-auto">
+                                Your venue owner application is being reviewed by our team. You'll get access to the dashboard once approved.
+                            </p>
+                            <div className="bg-white/[0.03] border border-border-default rounded-xl p-5 mb-6 text-left space-y-2.5">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-accent-emerald/15 flex items-center justify-center shrink-0"><HiCheck className="text-accent-emerald" /></div>
+                                    <span className="text-text-secondary text-sm">Account created successfully</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-accent-gold/15 flex items-center justify-center shrink-0"><HiClock className="text-accent-gold text-sm" /></div>
+                                    <span className="text-text-secondary text-sm">Admin verification in progress</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-white/[0.06] flex items-center justify-center shrink-0 text-text-muted text-xs">3</div>
+                                    <span className="text-text-muted text-sm">Dashboard access after approval</span>
+                                </div>
+                            </div>
+                            <p className="text-text-muted text-xs mb-4">Typically takes 24-48 hours</p>
+                        </>
+                    )}
+                    <div className="flex gap-3 justify-center">
+                        <Link to="/" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-accent-emerald to-teal-500 text-white shadow-[0_4px_15px_rgba(16,185,129,0.3)] hover:-translate-y-0.5 transition-all duration-300">
+                            Back to Home
+                        </Link>
+                        <button onClick={handleLogout} className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-xl bg-white/[0.06] border border-border-default text-text-secondary hover:text-white transition-all duration-300">
+                            <HiLogout /> Logout
+                        </button>
+                    </div>
+                </motion.div>
+            </div>
+        );
+    }
+
     return (
         <div className="flex min-h-screen bg-bg-primary">
             <aside className={`fixed top-0 left-0 h-full w-[260px] bg-bg-secondary border-r border-border-default flex flex-col z-50 transition-transform duration-300 max-lg:${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
