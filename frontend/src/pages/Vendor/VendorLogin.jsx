@@ -59,7 +59,7 @@ export default function VendorLogin() {
                 if (data && data.success) {
                     if (data.user.role !== 'vendor' && data.user.role !== 'admin') {
                         setError('Access denied. This account is not a vendor account.');
-                        await logout();
+                        await logout(true);
                         setLoading(false);
                         return;
                     }
@@ -70,7 +70,7 @@ export default function VendorLogin() {
                     }
                     if (data.user.vendorStatus === 'rejected') {
                         setError('Your vendor application was rejected. Please contact support.');
-                        await logout();
+                        await logout(true);
                         setLoading(false);
                         return;
                     }

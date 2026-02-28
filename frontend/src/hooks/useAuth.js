@@ -49,9 +49,9 @@ export default function useAuth() {
         throw error;
     }, [dispatch]);
 
-    const logout = useCallback(async () => {
+    const logout = useCallback(async (skipNavigate = false) => {
         await dispatch(logoutUser());
-        navigate('/');
+        if (!skipNavigate) navigate('/');
     }, [dispatch, navigate]);
 
     const updateProfile = useCallback(async (formData) => {
