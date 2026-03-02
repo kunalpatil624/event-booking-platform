@@ -6,7 +6,7 @@ export default defineConfig({
     plugins: [react(), tailwindcss()],
     server: {
         port: 3000,
-        open: true,
+        host: true, // It's good practice for docker to listen on all interfaces
     },
     resolve: {
         alias: {
