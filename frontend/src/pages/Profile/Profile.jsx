@@ -5,14 +5,17 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import ProfileInfo from './components/ProfileInfo';
 import MyBookings from './components/MyBookings';
+import PaymentHistory from './components/PaymentHistory';
 import useAuth from '../../hooks/useAuth';
 import useWishlistDefault, { useMyWishlist } from '../../hooks/useWishlist';
-import { HiUser, HiCalendar, HiHeart, HiCog, HiLogout, HiArrowLeft, HiShieldCheck, HiStar, HiLocationMarker, HiTrash, HiCurrencyRupee } from 'react-icons/hi';
+import { HiUser, HiCalendar, HiHeart, HiCog, HiLogout, HiArrowLeft, HiShieldCheck, HiStar, HiLocationMarker, HiTrash, HiCurrencyRupee, HiQuestionMarkCircle } from 'react-icons/hi';
 
 const sideNavItems = [
     { id: 'profile', label: 'My Profile', icon: <HiUser /> },
     { id: 'bookings', label: 'My Bookings', icon: <HiCalendar /> },
+    { id: 'payments', label: 'Payments', icon: <HiCurrencyRupee /> },
     { id: 'wishlist', label: 'Wishlist', icon: <HiHeart /> },
+    { id: 'help', label: 'Help & Support', icon: <HiQuestionMarkCircle /> },
     { id: 'settings', label: 'Settings', icon: <HiCog /> },
 ];
 
@@ -187,6 +190,45 @@ export default function Profile() {
 
                             {activeTab === 'wishlist' && (
                                 <WishlistTab />
+                            )}
+
+                            {activeTab === 'payments' && (
+                                <PaymentHistory />
+                            )}
+
+                            {activeTab === 'help' && (
+                                <motion.div
+                                    className="bg-bg-card border border-border-default rounded-2xl overflow-hidden"
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                >
+                                    <div className="p-6 border-b border-border-default">
+                                        <h3 className="text-lg font-semibold text-white">Help & Support</h3>
+                                        <p className="text-text-muted text-sm mt-1">Get help with your bookings and account</p>
+                                    </div>
+                                    <div className="divide-y divide-border-default">
+                                        {[
+                                            { q: 'How do I book a venue?', a: 'Search for a venue, pick your date, select a package, and pay the 20% advance to confirm your booking.' },
+                                            { q: 'What is the cancellation policy?', a: 'Free cancellation up to 30 days before the event. 50% refund for cancellations 15-30 days before. No refund within 15 days.' },
+                                            { q: 'How does payment work?', a: 'You pay 20% advance online through Razorpay (UPI, Cards, Net Banking). The remaining 80% is paid directly to the venue before the event.' },
+                                            { q: 'Can I modify my booking?', a: 'You can cancel and rebook. Direct modifications are not yet supported but coming soon.' },
+                                            { q: 'How do I contact a venue?', a: 'Visit the venue detail page and use the Call or Chat buttons to contact the venue manager directly.' },
+                                            { q: 'I paid but didn\'t get confirmation?', a: 'Please wait a few minutes. If the issue persists, contact us at support@eventbook.in with your booking ID.' },
+                                        ].map((faq, i) => (
+                                            <div key={i} className="p-5">
+                                                <h4 className="text-sm font-semibold text-white mb-2 flex items-center gap-2"><HiQuestionMarkCircle className="text-primary-light shrink-0" /> {faq.q}</h4>
+                                                <p className="text-text-secondary text-sm leading-relaxed pl-6">{faq.a}</p>
+                                            </div>
+                                        ))}
+                                        <div className="p-6">
+                                            <h4 className="text-sm font-semibold text-white mb-3">Still need help?</h4>
+                                            <div className="flex gap-3 flex-wrap">
+                                                <a href="mailto:support@eventbook.in" className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-light text-white text-sm font-semibold rounded-xl hover:-translate-y-0.5 transition-all duration-300 shadow-[0_4px_12px_rgba(108,60,225,0.3)]">📧 Email Us</a>
+                                                <a href="tel:+917000000000" className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/[0.06] border border-border-default rounded-xl text-text-secondary text-sm font-medium hover:text-white hover:border-border-light transition-all duration-300">📞 Call Support</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
                             )}
 
                             {activeTab === 'settings' && (

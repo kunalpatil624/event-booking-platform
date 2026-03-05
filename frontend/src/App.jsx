@@ -18,6 +18,8 @@ import About from './pages/About/About';
 import Contact from './pages/Contact/Contact';
 import OAuthSuccess from './pages/Auth/OAuthSuccess';
 import NotFound from './pages/NotFound';
+import Onboarding from './components/Onboarding';
+import HelpSupport from './pages/HelpSupport/HelpSupport';
 
 function App() {
     const dispatch = useDispatch();
@@ -53,6 +55,7 @@ function App() {
 
     return (
         <>
+            <Onboarding />
             <Toaster position="top-right" toastOptions={{ style: { background: '#1A1A2E', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' } }} />
             <Routes>
                 <Route path="/" element={<Home />} />
@@ -64,12 +67,14 @@ function App() {
                 <Route path="/vendor" element={<VendorLogin />} />
                 <Route path="/vendor/dashboard" element={<VendorDashboard />} />
                 <Route path="/vendor/add-venue" element={<AddVenue />} />
+                <Route path="/vendor/edit-venue/:id" element={<AddVenue />} />
                 <Route path="/admin" element={<AdminLogin />} />
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/wishlist" element={<Wishlist />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route path="/help" element={<HelpSupport />} />
                 <Route path="*" element={<NotFound />} />
             </Routes>
         </>

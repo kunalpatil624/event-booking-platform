@@ -19,6 +19,8 @@ const navItems = [
     { icon: <HiHome />, label: 'Dashboard', id: 'dashboard' },
     { icon: <HiOfficeBuilding />, label: 'All Venues', id: 'venues' },
     { icon: <HiCalendar />, label: 'Bookings', id: 'bookings' },
+    { icon: <HiCurrencyRupee />, label: 'Commission', id: 'commission' },
+    { icon: <HiTrendingUp />, label: 'Reports', id: 'reports' },
     { icon: <HiUsers />, label: 'Users', id: 'users' },
     { icon: <HiCheckCircle />, label: 'Approvals', id: 'approvals' },
     { icon: <HiUserGroup />, label: 'Vendor Requests', id: 'vendors' },
@@ -505,6 +507,217 @@ export default function AdminDashboard() {
                                     <p className="text-text-muted">No {bookingFilter !== 'all' ? bookingFilter : ''} vendor requests found.</p>
                                 </div>
                             )}
+                        </motion.div>
+                    )}
+
+                    {/* ============ COMMISSION TRACKING SECTION ============ */}
+                    {activeNav === 'commission' && (
+                        <motion.div className="space-y-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                            {/* Commission Summary */}
+                            {(() => {
+                                const COMMISSION_RATE = 0.10;
+                                const paidBookings = adminBookings.filter(b => b.paymentStatus === 'advance-paid' || b.paymentStatus === 'fully-paid');
+                                const totalRevenue = paidBookings.reduce((s, b) => s + (b.pricing?.totalAmount || 0), 0);
+                                const totalCommission = paidBookings.reduce((s, b) => s + (b.pricing?.advanceAmount || 0) * COMMISSION_RATE, 0);
+                                const totalAdvance = paidBookings.reduce((s, b) => s + (b.pricing?.advanceAmount || 0), 0);
+                                return (
+                                    <>
+                                        <div className="grid grid-cols-4 max-lg:grid-cols-2 max-sm:grid-cols-1 gap-4">
+                                            <div className="p-6 bg-bg-card border border-border-default rounded-2xl">
+                                                <span className="text-text-muted text-xs block mb-2">Total Booking Revenue</span>
+                                                <span className="text-3xl font-extrabold text-white">₹{totalRevenue.toLocaleString('en-IN')}</span>
+                                                <p className="text-blue-400 text-xs mt-1">{paidBookings.length} paid bookings</p>
+                                            </div>
+                                            <div className="p-6 bg-bg-card border border-border-default rounded-2xl">
+                                                <span className="text-text-muted text-xs block mb-2">Advance Collected</span>
+                                                <span className="text-3xl font-extrabold text-accent-emerald">₹{totalAdvance.toLocaleString('en-IN')}</span>
+                                                <p className="text-text-muted text-xs mt-1">20% of total via Razorpay</p>
+                                            </div>
+                                            <div className="p-6 bg-gradient-to-br from-primary/10 to-primary-light/5 border border-primary/20 rounded-2xl">
+                                                <span className="text-text-muted text-xs block mb-2">Platform Commission (10%)</span>
+                                                <span className="text-3xl font-extrabold text-primary-light">₹{Math.round(totalCommission).toLocaleString('en-IN')}</span>
+                                                <p className="text-primary-light/60 text-xs mt-1">10% of advance collected</p>
+                                            </div>
+                                            <div className="p-6 bg-bg-card border border-border-default rounded-2xl">
+                                                <span className="text-text-muted text-xs block mb-2">Vendor Payouts</span>
+                                                <span className="text-3xl font-extrabold text-accent-gold">₹{Math.round(totalAdvance - totalCommission).toLocaleString('en-IN')}</span>
+                                                <p className="text-accent-gold/60 text-xs mt-1">Advance minus commission</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Per-Booking Commission Table */}
+                                        <div className="bg-bg-card border border-border-default rounded-2xl overflow-hidden">
+                                            <div className="p-5 border-b border-border-default flex items-center justify-between">
+                                                <h2 className="text-lg font-semibold text-white">Commission Per Booking</h2>
+                                                <span className="text-text-muted text-xs">{COMMISSION_RATE * 100}% commission rate</span>
+                                            </div>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-sm text-left">
+                                                    <thead className="bg-white/5 text-text-muted text-xs uppercase">
+                                                        <tr><th className="px-5 py-3">Booking</th><th className="px-5 py-3">Venue</th><th className="px-5 py-3">Total</th><th className="px-5 py-3">Advance</th><th className="px-5 py-3">Commission</th><th className="px-5 py-3">Date</th></tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-border-default">
+                                                        {paidBookings.slice(0, 25).map(b => (
+                                                            <tr key={b._id} className="hover:bg-white/[0.02]">
+                                                                <td className="px-5 py-3 font-mono text-xs text-blue-400">{b.bookingId}</td>
+                                                                <td className="px-5 py-3 text-white font-medium">{b.venue?.name}</td>
+                                                                <td className="px-5 py-3 text-text-secondary">₹{(b.pricing?.totalAmount || 0).toLocaleString('en-IN')}</td>
+                                                                <td className="px-5 py-3 text-accent-emerald">₹{(b.pricing?.advanceAmount || 0).toLocaleString('en-IN')}</td>
+                                                                <td className="px-5 py-3 text-primary-light font-semibold">₹{Math.round((b.pricing?.advanceAmount || 0) * COMMISSION_RATE).toLocaleString('en-IN')}</td>
+                                                                <td className="px-5 py-3 text-text-muted text-xs">{new Date(b.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </>
+                                );
+                            })()}
+                        </motion.div>
+                    )}
+
+                    {/* ============ REPORTS & ANALYTICS SECTION ============ */}
+                    {activeNav === 'reports' && (
+                        <motion.div className="space-y-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                            {(() => {
+                                const paidBookings = adminBookings.filter(b => b.paymentStatus === 'advance-paid' || b.paymentStatus === 'fully-paid');
+                                // Revenue by city
+                                const cityRevenue = {};
+                                paidBookings.forEach(b => {
+                                    const city = b.venue?.city || 'Unknown';
+                                    cityRevenue[city] = (cityRevenue[city] || 0) + (b.pricing?.totalAmount || 0);
+                                });
+                                const cityEntries = Object.entries(cityRevenue).sort((a, b) => b[1] - a[1]);
+                                const maxCity = cityEntries[0]?.[1] || 1;
+
+                                // Revenue by venue type
+                                const typeRevenue = {};
+                                paidBookings.forEach(b => {
+                                    const type = b.venue?.venueType || 'other';
+                                    typeRevenue[type] = (typeRevenue[type] || 0) + (b.pricing?.totalAmount || 0);
+                                });
+                                const typeEntries = Object.entries(typeRevenue).sort((a, b) => b[1] - a[1]);
+                                const maxType = typeEntries[0]?.[1] || 1;
+
+                                // Monthly revenue
+                                const monthlyRevenue = {};
+                                paidBookings.forEach(b => {
+                                    const month = new Date(b.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'short' });
+                                    monthlyRevenue[month] = (monthlyRevenue[month] || 0) + (b.pricing?.totalAmount || 0);
+                                });
+                                const monthEntries = Object.entries(monthlyRevenue).sort((a, b) => new Date(b[0]) - new Date(a[0])).slice(0, 12);
+                                const maxMonth = Math.max(...monthEntries.map(m => m[1]), 1);
+
+                                // Bookings by event type
+                                const eventTypeCounts = {};
+                                adminBookings.forEach(b => {
+                                    const t = b.eventType || 'other';
+                                    eventTypeCounts[t] = (eventTypeCounts[t] || 0) + 1;
+                                });
+                                const eventEntries = Object.entries(eventTypeCounts).sort((a, b) => b[1] - a[1]);
+                                const maxEvent = eventEntries[0]?.[1] || 1;
+
+                                const colors = ['#6C3CE1', '#10B981', '#F59E0B', '#3B82F6', '#EC4899', '#06B6D4', '#8B5CF6', '#14B8A6'];
+
+                                return (
+                                    <>
+                                        {/* Summary Cards */}
+                                        <div className="grid grid-cols-4 max-lg:grid-cols-2 max-sm:grid-cols-1 gap-4">
+                                            <div className="p-5 bg-bg-card border border-border-default rounded-2xl">
+                                                <span className="text-text-muted text-xs">Total Bookings</span>
+                                                <span className="text-2xl font-extrabold text-white block">{adminBookings.length}</span>
+                                            </div>
+                                            <div className="p-5 bg-bg-card border border-border-default rounded-2xl">
+                                                <span className="text-text-muted text-xs">Confirmed</span>
+                                                <span className="text-2xl font-extrabold text-accent-emerald block">{adminBookings.filter(b => b.status === 'confirmed' || b.status === 'completed').length}</span>
+                                            </div>
+                                            <div className="p-5 bg-bg-card border border-border-default rounded-2xl">
+                                                <span className="text-text-muted text-xs">Cancelled</span>
+                                                <span className="text-2xl font-extrabold text-accent block">{adminBookings.filter(b => b.status === 'cancelled').length}</span>
+                                            </div>
+                                            <div className="p-5 bg-bg-card border border-border-default rounded-2xl">
+                                                <span className="text-text-muted text-xs">Avg Order Value</span>
+                                                <span className="text-2xl font-extrabold text-primary-light block">₹{paidBookings.length > 0 ? Math.round(paidBookings.reduce((s, b) => s + (b.pricing?.totalAmount || 0), 0) / paidBookings.length).toLocaleString('en-IN') : '0'}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 max-lg:grid-cols-1 gap-6">
+                                            {/* Revenue by City */}
+                                            <div className="bg-bg-card border border-border-default rounded-2xl">
+                                                <div className="p-5 border-b border-border-default"><h3 className="text-base font-semibold text-white">Revenue by City</h3></div>
+                                                <div className="p-5 space-y-3">
+                                                    {cityEntries.length > 0 ? cityEntries.map(([city, revenue], i) => (
+                                                        <div key={city}>
+                                                            <div className="flex justify-between text-sm mb-1">
+                                                                <span className="text-white font-medium">{city}</span>
+                                                                <span className="text-accent-emerald font-semibold">₹{revenue.toLocaleString('en-IN')}</span>
+                                                            </div>
+                                                            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                                                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${(revenue / maxCity) * 100}%`, background: colors[i % colors.length] }} />
+                                                            </div>
+                                                        </div>
+                                                    )) : <p className="text-text-muted text-sm">No data yet</p>}
+                                                </div>
+                                            </div>
+
+                                            {/* Revenue by Venue Type */}
+                                            <div className="bg-bg-card border border-border-default rounded-2xl">
+                                                <div className="p-5 border-b border-border-default"><h3 className="text-base font-semibold text-white">Revenue by Venue Type</h3></div>
+                                                <div className="p-5 space-y-3">
+                                                    {typeEntries.length > 0 ? typeEntries.map(([type, revenue], i) => (
+                                                        <div key={type}>
+                                                            <div className="flex justify-between text-sm mb-1">
+                                                                <span className="text-white font-medium capitalize">{type.replace('-', ' ')}</span>
+                                                                <span className="text-primary-light font-semibold">₹{revenue.toLocaleString('en-IN')}</span>
+                                                            </div>
+                                                            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                                                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${(revenue / maxType) * 100}%`, background: colors[(i + 2) % colors.length] }} />
+                                                            </div>
+                                                        </div>
+                                                    )) : <p className="text-text-muted text-sm">No data yet</p>}
+                                                </div>
+                                            </div>
+
+                                            {/* Monthly Revenue Trend */}
+                                            <div className="bg-bg-card border border-border-default rounded-2xl">
+                                                <div className="p-5 border-b border-border-default"><h3 className="text-base font-semibold text-white">Monthly Revenue Trend</h3></div>
+                                                <div className="p-5">
+                                                    {monthEntries.length > 0 ? (
+                                                        <div className="flex items-end gap-2 h-40">
+                                                            {monthEntries.reverse().map(([month, revenue], i) => (
+                                                                <div key={month} className="flex-1 flex flex-col items-center justify-end">
+                                                                    <span className="text-text-muted text-[9px] mb-1">₹{(revenue / 1000).toFixed(0)}K</span>
+                                                                    <div className="rounded-t-md w-full min-h-[4px] transition-all duration-500" style={{ height: `${(revenue / maxMonth) * 120}px`, background: `linear-gradient(to top, ${colors[i % colors.length]}, ${colors[i % colors.length]}88)` }} />
+                                                                    <span className="text-text-muted text-[8px] mt-1 whitespace-nowrap">{month.split(' ')[0]}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : <p className="text-text-muted text-sm text-center py-8">No revenue data</p>}
+                                                </div>
+                                            </div>
+
+                                            {/* Bookings by Event Type */}
+                                            <div className="bg-bg-card border border-border-default rounded-2xl">
+                                                <div className="p-5 border-b border-border-default"><h3 className="text-base font-semibold text-white">Bookings by Event Type</h3></div>
+                                                <div className="p-5 space-y-3">
+                                                    {eventEntries.length > 0 ? eventEntries.map(([type, count], i) => (
+                                                        <div key={type}>
+                                                            <div className="flex justify-between text-sm mb-1">
+                                                                <span className="text-white font-medium capitalize">{type}</span>
+                                                                <span className="text-blue-400 font-semibold">{count} bookings</span>
+                                                            </div>
+                                                            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                                                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${(count / maxEvent) * 100}%`, background: colors[(i + 4) % colors.length] }} />
+                                                            </div>
+                                                        </div>
+                                                    )) : <p className="text-text-muted text-sm">No data yet</p>}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
+                                );
+                            })()}
                         </motion.div>
                     )}
                 </div>

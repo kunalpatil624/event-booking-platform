@@ -1,5 +1,6 @@
 const Venue = require('../models/Venue');
 const User = require('../models/User');
+const Availability = require('../models/Availability');
 const { sendNewVenueEmailToAdmin } = require('../utils/emailService');
 
 // @desc    Get all venues with filters
@@ -9,7 +10,7 @@ exports.getVenues = async (req, res) => {
         const {
             city, area, venueType, occasion, minPrice, maxPrice,
             minCapacity, maxCapacity, parking, ac, catering,
-            decoration, sort, page = 1, limit = 12, search, featured
+            decoration, sort, page = 1, limit = 12, search, featured, date
         } = req.query;
 
         const query = { isApproved: true, isActive: true };
@@ -43,6 +44,18 @@ exports.getVenues = async (req, res) => {
                 { area: new RegExp(search, 'i') },
                 { description: new RegExp(search, 'i') }
             ];
+        }
+
+        // Date-based availability filter: exclude venues that are booked/unavailable on the given date
+        if (date) {
+            const unavailable = await Availability.find({
+                date: new Date(date),
+                isAvailable: false
+            }).select('venue');
+            const unavailableVenueIds = unavailable.map(a => a.venue);
+            if (unavailableVenueIds.length > 0) {
+                query._id = { $nin: unavailableVenueIds };
+            }
         }
 
         let sortOption = { createdAt: -1 };

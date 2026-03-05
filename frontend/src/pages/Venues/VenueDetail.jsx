@@ -533,9 +533,17 @@ export default function VenueDetail() {
                                     <p className="text-text-secondary text-sm mb-1">Booking ID: <span className="text-primary-light font-semibold">{bookingSuccess.bookingId}</span></p>
                                     <p className="text-accent-emerald text-sm font-medium mb-1">✅ Advance of ₹{(bookingSuccess.pricing?.advanceAmount || 0).toLocaleString('en-IN')} paid successfully</p>
                                     <p className="text-text-muted text-xs mb-6">Remaining ₹{(bookingSuccess.pricing?.remainingAmount || 0).toLocaleString('en-IN')} to be paid before the event.</p>
-                                    <div className="flex gap-3 justify-center">
+                                    <div className="flex gap-3 justify-center flex-wrap">
                                         <Link to="/profile" className="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-light text-white text-sm font-semibold rounded-xl hover:-translate-y-0.5 transition-all duration-300 shadow-[0_4px_15px_rgba(108,60,225,0.3)]">View My Bookings</Link>
-                                        <button onClick={() => { setShowBookingModal(false); setBookingSuccess(null); setBookingForm({ eventDate: '', eventType: 'wedding', guestCount: '', specialNotes: '' }); resetAvailability(); setSelectedPackage(null); }} className="px-6 py-2.5 bg-white/[0.06] border border-border-default rounded-xl text-text-secondary text-sm font-medium hover:text-white transition-all">Close</button>
+                                        <button onClick={() => {
+                                            const eventDate = new Date(bookingSuccess.eventDate);
+                                            const startDate = eventDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                                            const endDate = new Date(eventDate.getTime() + 12 * 60 * 60 * 1000).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                                            const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//EventBook//EN', 'BEGIN:VEVENT', `DTSTART:${startDate}`, `DTEND:${endDate}`, `SUMMARY:${bookingSuccess.eventType?.charAt(0).toUpperCase() + bookingSuccess.eventType?.slice(1)} at ${venue.name}`, `DESCRIPTION:Booking ID: ${bookingSuccess.bookingId}\\nGuests: ${bookingSuccess.guestCount}`, `LOCATION:${venue.address || venue.area + ', ' + venue.city}`, `STATUS:CONFIRMED`, 'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY', `DESCRIPTION:Your event is tomorrow!`, 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+                                            const blob = new Blob([ics], { type: 'text/calendar' });
+                                            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${bookingSuccess.bookingId}.ics`; a.click();
+                                        }} className="px-5 py-2.5 bg-white/[0.06] border border-border-default rounded-xl text-text-secondary text-sm font-medium hover:text-white transition-all flex items-center gap-1.5"><HiCalendar /> Add to Calendar</button>
+                                        <button onClick={() => { setShowBookingModal(false); setBookingSuccess(null); setBookingForm({ eventDate: '', eventType: 'wedding', guestCount: '', specialNotes: '' }); resetAvailability(); setSelectedPackage(null); }} className="px-5 py-2.5 bg-white/[0.06] border border-border-default rounded-xl text-text-secondary text-sm font-medium hover:text-white transition-all">Close</button>
                                     </div>
                                 </div>
                             )}

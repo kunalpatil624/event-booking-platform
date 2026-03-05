@@ -1,43 +1,105 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 import { HiArrowLeft, HiOfficeBuilding, HiLocationMarker, HiCurrencyRupee, HiUsers, HiPhotograph, HiCheck, HiPlus, HiTrash, HiX } from 'react-icons/hi';
 import { useVenueActions } from '../../hooks/useVenues';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const venueTypes = ['banquet', 'lawn', 'resort', 'hotel', 'farmhouse', 'community-hall', 'marriage-garden'];
 const occasionsList = ['wedding', 'reception', 'engagement', 'birthday', 'corporate', 'conference', 'party', 'anniversary', 'other'];
 
+const emptyFormData = {
+    name: '',
+    description: '',
+    venueType: 'banquet',
+    occasions: [],
+    city: '',
+    area: '',
+    address: '',
+    capacity: { min: 50, max: 500 },
+    startingPrice: '',
+    pricePerPlate: '',
+    amenities: {
+        parking: false,
+        ac: false,
+        wifi: false,
+        dj: false,
+        cateringAvailable: false,
+        decorationAvailable: false,
+        alcoholAllowed: false,
+        rooms: 0
+    },
+    images: [],
+    packages: [],
+    foodMenu: []
+};
+
 export default function AddVenue() {
     const navigate = useNavigate();
-    const { createVenue, uploadImages } = useVenueActions();
+    const { id: venueId } = useParams();
+    const isEditMode = Boolean(venueId);
+    const { createVenue, updateVenue, uploadImages } = useVenueActions();
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        venueType: 'banquet',
-        occasions: [],
-        city: '',
-        area: '',
-        address: '',
-        capacity: { min: 50, max: 500 },
-        startingPrice: '',
-        pricePerPlate: '',
-        amenities: {
-            parking: false,
-            ac: false,
-            wifi: false,
-            dj: false,
-            cateringAvailable: false,
-            decorationAvailable: false,
-            alcoholAllowed: false,
-            rooms: 0
-        },
-        images: [],
-        packages: [],
-        foodMenu: []
-    });
+    const [fetchingVenue, setFetchingVenue] = useState(false);
+    const [formData, setFormData] = useState({ ...emptyFormData });
+
+    // Fetch venue data when editing
+    useEffect(() => {
+        if (isEditMode && venueId) {
+            const fetchVenue = async () => {
+                setFetchingVenue(true);
+                try {
+                    const { data } = await axios.get(`${API_URL}/venues/${venueId}`, { withCredentials: true });
+                    if (data.success && data.venue) {
+                        const v = data.venue;
+                        setFormData({
+                            name: v.name || '',
+                            description: v.description || '',
+                            venueType: v.venueType || 'banquet',
+                            occasions: v.occasions || [],
+                            city: v.city || '',
+                            area: v.area || '',
+                            address: v.address || '',
+                            capacity: {
+                                min: v.capacity?.min || 50,
+                                max: v.capacity?.max || 500
+                            },
+                            startingPrice: v.startingPrice || '',
+                            pricePerPlate: v.pricePerPlate || '',
+                            amenities: {
+                                parking: v.amenities?.parking || false,
+                                ac: v.amenities?.ac || false,
+                                wifi: v.amenities?.wifi || false,
+                                dj: v.amenities?.dj || false,
+                                cateringAvailable: v.amenities?.cateringAvailable || false,
+                                decorationAvailable: v.amenities?.decorationAvailable || false,
+                                alcoholAllowed: v.amenities?.alcoholAllowed || false,
+                                rooms: v.amenities?.rooms || 0
+                            },
+                            images: v.images?.map(img => typeof img === 'string' ? img : img.url) || [],
+                            packages: v.packages?.map(p => ({
+                                name: p.name || '',
+                                price: p.price || '',
+                                description: p.description || '',
+                                includes: Array.isArray(p.includes) ? p.includes.join(', ') : (p.includes || '')
+                            })) || [],
+                            foodMenu: v.foodMenu || []
+                        });
+                    }
+                } catch (err) {
+                    toast.error('Failed to load venue details');
+                    navigate('/vendor/dashboard');
+                } finally {
+                    setFetchingVenue(false);
+                }
+            };
+            fetchVenue();
+        }
+    }, [isEditMode, venueId]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -169,7 +231,7 @@ export default function AddVenue() {
             // Format data for backend
             const payload = {
                 ...formData,
-                images: formData.images.filter(url => url.trim() !== '').map((url, i) => ({ url, isMain: i === 0 })),
+                images: formData.images.filter(url => url && url.trim() !== '').map((url, i) => ({ url, isMain: i === 0 })),
                 startingPrice: Number(formData.startingPrice),
                 pricePerPlate: Number(formData.pricePerPlate) || 0,
                 capacity: {
@@ -194,10 +256,15 @@ export default function AddVenue() {
                 }))
             };
 
-            const data = await createVenue(payload);
+            let data;
+            if (isEditMode) {
+                data = await updateVenue(venueId, payload);
+            } else {
+                data = await createVenue(payload);
+            }
 
             if (data && data.success) {
-                toast.success('Venue listed successfully!');
+                toast.success(isEditMode ? 'Venue updated successfully!' : 'Venue listed successfully!');
                 navigate('/vendor/dashboard');
             }
         } catch (error) {
@@ -205,7 +272,7 @@ export default function AddVenue() {
             if (error.response?.data?.message) {
                 toast.error(error.response.data.message);
             } else {
-                toast.error('Failed to list venue');
+                toast.error(isEditMode ? 'Failed to update venue' : 'Failed to list venue');
             }
         } finally {
             setLoading(false);
@@ -215,6 +282,17 @@ export default function AddVenue() {
     const inputCls = "w-full px-4 py-3 bg-white/[0.03] border border-border-default rounded-xl text-white text-sm outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(108,60,225,0.15)] transition-all";
     const labelCls = "block text-sm font-medium text-text-muted mb-2";
 
+    if (fetchingVenue) {
+        return (
+            <div className="min-h-screen bg-bg-primary flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-text-muted">Loading venue details...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-bg-primary pb-20 pt-10">
             <div className="max-w-4xl mx-auto px-6">
@@ -223,9 +301,9 @@ export default function AddVenue() {
                 </Link>
 
                 <div className="bg-bg-card border border-border-default rounded-2xl overflow-hidden">
-                    <div className="p-8 border-b border-border-default bg-gradient-to-r from-primary/10 to-transparent">
-                        <h1 className="text-2xl font-bold text-white">List Your Venue</h1>
-                        <p className="text-text-muted mt-1">Fill in the details to start accepting bookings</p>
+                    <div className={`p-8 border-b border-border-default bg-gradient-to-r ${isEditMode ? 'from-accent-emerald/10 to-transparent' : 'from-primary/10 to-transparent'}`}>
+                        <h1 className="text-2xl font-bold text-white">{isEditMode ? 'Edit Venue' : 'List Your Venue'}</h1>
+                        <p className="text-text-muted mt-1">{isEditMode ? 'Update your venue details below' : 'Fill in the details to start accepting bookings'}</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="p-8">
@@ -433,9 +511,15 @@ export default function AddVenue() {
                             <button
                                 type="submit"
                                 disabled={loading || uploading}
-                                className="px-8 py-3 rounded-xl bg-gradient-to-r from-primary to-primary-light text-white font-semibold shadow-[0_4px_15px_rgba(108,60,225,0.4)] hover:-translate-y-0.5 hover:shadow-[0_6px_25px_rgba(108,60,225,0.5)] transition-all disabled:opacity-50"
+                                className={`px-8 py-3 rounded-xl text-white font-semibold hover:-translate-y-0.5 transition-all disabled:opacity-50 ${isEditMode
+                                    ? 'bg-gradient-to-r from-accent-emerald to-teal-500 shadow-[0_4px_15px_rgba(16,185,129,0.4)] hover:shadow-[0_6px_25px_rgba(16,185,129,0.5)]'
+                                    : 'bg-gradient-to-r from-primary to-primary-light shadow-[0_4px_15px_rgba(108,60,225,0.4)] hover:shadow-[0_6px_25px_rgba(108,60,225,0.5)]'
+                                    }`}
                             >
-                                {loading ? 'Listing Venue...' : 'List Venue'}
+                                {loading
+                                    ? (isEditMode ? 'Updating Venue...' : 'Listing Venue...')
+                                    : (isEditMode ? 'Update Venue' : 'List Venue')
+                                }
                             </button>
                         </div>
                     </form>

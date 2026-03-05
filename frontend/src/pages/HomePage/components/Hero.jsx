@@ -11,6 +11,7 @@ export default function Hero() {
     const [city, setCity] = useState('');
     const [occasion, setOccasion] = useState('');
     const [guests, setGuests] = useState('');
+    const [eventDate, setEventDate] = useState('');
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -18,6 +19,7 @@ export default function Hero() {
         if (city) params.set('city', city);
         if (occasion) params.set('occasion', occasion.toLowerCase());
         if (guests) params.set('minCapacity', guests);
+        if (eventDate) params.set('date', eventDate);
         navigate(`/venues?${params.toString()}`);
     };
 
@@ -69,6 +71,11 @@ export default function Hero() {
                             <option value="">Occasion</option>
                             {occasions.map(o => <option key={o} value={o}>{o}</option>)}
                         </select>
+                    </div>
+                    <div className="w-px h-8 bg-border-default shrink-0 max-md:hidden" />
+                    <div className="flex-1 flex items-center gap-2.5 px-4 py-2 max-md:w-full max-md:border-b max-md:border-border-default max-md:px-3 max-md:py-2.5">
+                        <HiCalendar className="text-xl text-primary-light shrink-0" />
+                        <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="flex-1 bg-transparent border-none text-white text-sm py-1.5 outline-none [color-scheme:dark]" />
                     </div>
                     <div className="w-px h-8 bg-border-default shrink-0 max-md:hidden" />
                     <div className="flex-1 flex items-center gap-2.5 px-4 py-2 max-md:w-full max-md:px-3 max-md:py-2.5">

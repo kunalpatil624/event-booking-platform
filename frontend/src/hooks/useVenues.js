@@ -25,6 +25,7 @@ export function useVenues(filters = {}, sort = 'popular', searchQuery = '', page
                 if (filters.ac) params.append('ac', 'true');
                 if (filters.catering) params.append('catering', 'true');
                 if (filters.decoration) params.append('decoration', 'true');
+                if (filters.date) params.append('date', filters.date);
                 if (searchQuery) params.append('search', searchQuery);
                 if (sort) params.append('sort', sort);
                 params.append('page', page);
@@ -207,7 +208,23 @@ export function useVenueActions() {
         }
     };
 
-    return { createVenue, uploadImages, loading, error };
+    const updateVenue = async (id, payload) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const { data } = await axios.put(`${API_URL}/venues/${id}`, payload, { withCredentials: true });
+            if (data.success) {
+                return data;
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to update venue');
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return { createVenue, updateVenue, uploadImages, loading, error };
 }
 
 // Fetch vendor's reviews across all their venues

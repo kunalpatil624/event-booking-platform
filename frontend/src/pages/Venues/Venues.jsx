@@ -26,7 +26,9 @@ export default function Venues() {
 
     const [filters, setFilters] = useState({
         city: searchParams.get('city') || '', venueType: searchParams.get('venueType') || '', occasion: searchParams.get('occasion') || '',
-        minPrice: '', maxPrice: '', minCapacity: searchParams.get('minCapacity') || '', parking: false, ac: false, catering: false, decoration: false,
+        minPrice: searchParams.get('minPrice') || '', maxPrice: searchParams.get('maxPrice') || '', minCapacity: searchParams.get('minCapacity') || '',
+        date: searchParams.get('date') || '',
+        parking: false, ac: false, catering: false, decoration: false,
     });
     const [sort, setSort] = useState('popular');
     const [searchQuery, setSearchQuery] = useState('');
@@ -35,7 +37,7 @@ export default function Venues() {
     const { venues, loading, totalPages, totalCount } = useVenues(filters, sort, searchQuery, currentPage, 12, featuredParam);
 
     const clearFilters = () => {
-        setFilters({ city: '', venueType: '', occasion: '', minPrice: '', maxPrice: '', minCapacity: '', parking: false, ac: false, catering: false, decoration: false });
+        setFilters({ city: '', venueType: '', occasion: '', minPrice: '', maxPrice: '', minCapacity: '', date: '', parking: false, ac: false, catering: false, decoration: false });
         setSearchQuery('');
         setCurrentPage(1);
     };
@@ -84,6 +86,10 @@ export default function Venues() {
                                         </select>
                                     </div>
                                 ))}
+                                <div>
+                                    <label className="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wide">Event Date</label>
+                                    <input type="date" value={filters.date} onChange={(e) => { setFilters({ ...filters, date: e.target.value }); setCurrentPage(1); }} min={new Date().toISOString().split('T')[0]} className="w-full px-3 py-2.5 bg-bg-secondary border border-border-default rounded-lg text-white text-sm outline-none [color-scheme:dark]" />
+                                </div>
                                 {[
                                     { label: 'Min Budget', placeholder: '₹ Min', value: filters.minPrice, key: 'minPrice' },
                                     { label: 'Max Budget', placeholder: '₹ Max', value: filters.maxPrice, key: 'maxPrice' },
