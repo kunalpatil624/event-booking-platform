@@ -75,7 +75,7 @@ export default function Hero() {
                     <div className="w-px h-8 bg-border-default shrink-0 max-md:hidden" />
                     <div className="flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2 max-md:w-full max-md:border-b max-md:border-border-default max-md:px-3 max-md:py-2.5">
                         <HiCalendar className="text-xl text-primary-light shrink-0" />
-                        <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="flex-1 bg-transparent border-none text-white text-sm py-1.5 outline-none [color-scheme:dark]" />
+                        <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="flex-1 bg-transparent border-none text-white text-sm py-1.5 outline-none [color-scheme:dark] cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer relative" />
                     </div>
                     <div className="w-px h-8 bg-border-default shrink-0 max-md:hidden" />
                     <div className="flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2 max-md:w-full max-md:px-3 max-md:py-2.5">
