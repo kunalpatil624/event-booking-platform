@@ -7,12 +7,22 @@ import { useMyVenues, useVendorReviews } from '../../hooks/useVenues';
 import { useVendorBookings } from '../../hooks/useBookings';
 import {
     HiHome, HiOfficeBuilding, HiCalendar, HiCurrencyRupee,
-    HiChatAlt2, HiStar, HiCog, HiLogout, HiPlus, HiPencil,
-    HiTrendingUp, HiEye, HiBell, HiMenu, HiX,
-    HiCheck, HiClock, HiXCircle, HiPhotograph, HiClipboardList,
-    HiUser, HiLockClosed, HiMail, HiPhone, HiSave, HiUserGroup, HiDocumentText, HiTag, HiTrash
+    HiChatAlt2, HiCog, HiLogout, HiPlus, HiMenu,
+    HiCheck, HiClock, HiXCircle, HiClipboardList, HiTag
 } from 'react-icons/hi';
-import { AnimatePresence } from 'framer-motion';
+
+// Components
+import VendorSidebar from './components/VendorSidebar';
+import VendorStatsGrid from './components/VendorStatsGrid';
+import VendorVenues from './components/VendorVenues';
+import VendorBookings from './components/VendorBookings';
+import VendorEarnings from './components/VendorEarnings';
+import VendorReviews from './components/VendorReviews';
+import VendorOffers from './components/VendorOffers';
+import VendorEnquiries from './components/VendorEnquiries';
+import VendorSettings from './components/VendorSettings';
+import BookingDetailModal from './components/BookingDetailModal';
+import CancelBookingModal from './components/CancelBookingModal';
 
 const navItems = [
     { icon: <HiHome />, label: 'Dashboard', id: 'dashboard' },
@@ -44,17 +54,8 @@ export default function VendorDashboard() {
         { label: 'Total Venues', value: '0', icon: <HiOfficeBuilding />, change: '', color: '#F5A623' },
         { label: 'Pending Requests', value: '0', icon: <HiClipboardList />, change: '', color: '#06B6D4' },
     ]);
-
-    // Settings state
     const [settingsForm, setSettingsForm] = useState({ name: '', mobile: '' });
     const [settingsLoading, setSettingsLoading] = useState(false);
-
-    // Offers state
-    const [offers, setOffers] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('vendor_offers') || '[]'); } catch { return []; }
-    });
-    const [showOfferForm, setShowOfferForm] = useState(false);
-    const [offerForm, setOfferForm] = useState({ title: '', description: '', discountPercent: '', validFrom: '', validTo: '', venueId: '', offerType: 'seasonal' });
 
     const loading = venuesLoading || bookingsLoading;
 
@@ -65,35 +66,25 @@ export default function VendorDashboard() {
         }
     }, [authLoading, vendorUser, navigate]);
 
-    // Init settings form
     useEffect(() => {
-        if (vendorUser) {
-            setSettingsForm({ name: vendorUser.name || '', mobile: vendorUser.mobile || '' });
-        }
+        if (vendorUser) setSettingsForm({ name: vendorUser.name || '', mobile: vendorUser.mobile || '' });
     }, [vendorUser]);
 
     useEffect(() => {
         if (!loading) {
-            calculateStats(bookings, myVenues);
+            const totalBookings = bookings.length;
+            const totalRevenue = bookings.reduce((sum, b) => sum + (b.pricing?.totalAmount || 0), 0);
+            const pending = bookings.filter(b => b.status === 'pending').length;
+            setStats([
+                { label: 'Total Bookings', value: totalBookings.toString(), icon: <HiCalendar />, change: 'lifetime', color: '#10B981' },
+                { label: 'Revenue', value: `₹${(totalRevenue / 100000).toFixed(2)}L`, icon: <HiCurrencyRupee />, change: 'lifetime', color: '#8B5CF6' },
+                { label: 'Total Venues', value: myVenues?.length.toString() || '0', icon: <HiOfficeBuilding />, change: 'active', color: '#F5A623' },
+                { label: 'Pending Requests', value: pending.toString(), icon: <HiClipboardList />, change: 'needs action', color: '#06B6D4' },
+            ]);
         }
     }, [bookings, myVenues, loading]);
 
-    const calculateStats = (bookingsList, venuesList) => {
-        const totalBookings = bookingsList.length;
-        const totalRevenue = bookingsList.reduce((sum, b) => sum + (b.pricing?.totalAmount || 0), 0);
-        const pending = bookingsList.filter(b => b.status === 'pending').length;
-
-        setStats([
-            { label: 'Total Bookings', value: totalBookings.toString(), icon: <HiCalendar />, change: 'lifetime', color: '#10B981' },
-            { label: 'Revenue', value: `₹${(totalRevenue / 100000).toFixed(2)}L`, icon: <HiCurrencyRupee />, change: 'lifetime', color: '#8B5CF6' },
-            { label: 'Total Venues', value: venuesList?.length.toString() || '0', icon: <HiOfficeBuilding />, change: 'active', color: '#F5A623' },
-            { label: 'Pending Requests', value: pending.toString(), icon: <HiClipboardList />, change: 'needs action', color: '#06B6D4' },
-        ]);
-    };
-
-    const handleLogout = () => {
-        logout();
-    };
+    const handleLogout = () => logout();
 
     const openCancelModal = (bookingId, bookingName) => {
         setCancelModal({ open: true, bookingId, bookingName });
@@ -101,56 +92,37 @@ export default function VendorDashboard() {
     };
 
     const handleCancelWithReason = async () => {
-        if (!cancelReason.trim()) {
-            toast.error('Please enter a reason for cancellation');
-            return;
-        }
+        if (!cancelReason.trim()) { toast.error('Please enter a reason for cancellation'); return; }
         setCancelLoading(true);
         try {
             await updateStatus(cancelModal.bookingId, 'cancelled', cancelReason.trim());
-            // Update selected booking modal state if open
-            if (selectedBooking?._id === cancelModal.bookingId) {
-                setSelectedBooking(prev => prev ? ({ ...prev, status: 'cancelled' }) : null);
-            }
+            if (selectedBooking?._id === cancelModal.bookingId) setSelectedBooking(prev => prev ? ({ ...prev, status: 'cancelled' }) : null);
             setCancelModal({ open: false, bookingId: null, bookingName: '' });
             setCancelReason('');
-        } catch (err) {
-            // handled in hook
-        } finally {
-            setCancelLoading(false);
-        }
+        } catch (err) { /* handled in hook */ } finally { setCancelLoading(false); }
     };
 
     const handleSettingsSave = async () => {
         setSettingsLoading(true);
-        try {
-            await updateProfile(settingsForm);
-        } catch (error) {
-            // Error handled in hook
-        } finally {
-            setSettingsLoading(false);
-        }
+        try { await updateProfile(settingsForm); } catch (e) { /* handled */ } finally { setSettingsLoading(false); }
     };
 
-    // Earnings calculations
+    // Computed data
     const confirmedBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'completed');
     const pendingBookings = bookings.filter(b => b.status === 'pending');
     const cancelledBookings = bookings.filter(b => b.status === 'cancelled');
     const totalRevenue = confirmedBookings.reduce((sum, b) => sum + (b.pricing?.totalAmount || 0), 0);
     const pendingRevenue = pendingBookings.reduce((sum, b) => sum + (b.pricing?.totalAmount || 0), 0);
 
-    // Monthly earnings breakdown
     const monthlyEarnings = {};
     confirmedBookings.forEach(b => {
         const month = new Date(b.createdAt || b.eventDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'short' });
         monthlyEarnings[month] = (monthlyEarnings[month] || 0) + (b.pricing?.totalAmount || 0);
     });
 
-    // Reviews stats
     const avgRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : '0.0';
     const ratingDistribution = [5, 4, 3, 2, 1].map(star => ({
-        star,
-        count: reviews.filter(r => r.rating === star).length,
+        star, count: reviews.filter(r => r.rating === star).length,
         percentage: reviews.length > 0 ? Math.round((reviews.filter(r => r.rating === star).length / reviews.length) * 100) : 0
     }));
 
@@ -169,53 +141,27 @@ export default function VendorDashboard() {
                 <motion.div className="w-full max-w-lg bg-bg-card border border-border-default rounded-3xl p-10 text-center relative z-[2] shadow-[0_8px_32px_rgba(0,0,0,0.5)]" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
                     {vendorUser.vendorStatus === 'rejected' ? (
                         <>
-                            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-accent/15 flex items-center justify-center">
-                                <HiXCircle className="text-accent text-4xl" />
-                            </div>
+                            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-accent/15 flex items-center justify-center"><HiXCircle className="text-accent text-4xl" /></div>
                             <h2 className="font-display text-2xl font-bold text-white mb-3">Application Rejected</h2>
-                            <p className="text-text-secondary text-sm mb-6 leading-relaxed max-w-sm mx-auto">
-                                Unfortunately, your vendor application was not approved. Please contact our support team for more details.
-                            </p>
-                            {vendorUser.rejectionReason && (
-                                <div className="p-4 bg-accent/[0.08] border border-accent/20 rounded-xl mb-6 text-left">
-                                    <p className="text-accent text-xs font-semibold mb-1">Reason:</p>
-                                    <p className="text-text-secondary text-sm">{vendorUser.rejectionReason}</p>
-                                </div>
-                            )}
+                            <p className="text-text-secondary text-sm mb-6 leading-relaxed max-w-sm mx-auto">Unfortunately, your vendor application was not approved. Please contact our support team for more details.</p>
+                            {vendorUser.rejectionReason && (<div className="p-4 bg-accent/[0.08] border border-accent/20 rounded-xl mb-6 text-left"><p className="text-accent text-xs font-semibold mb-1">Reason:</p><p className="text-text-secondary text-sm">{vendorUser.rejectionReason}</p></div>)}
                         </>
                     ) : (
                         <>
-                            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-accent-gold/15 flex items-center justify-center">
-                                <HiClock className="text-accent-gold text-4xl" />
-                            </div>
+                            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-accent-gold/15 flex items-center justify-center"><HiClock className="text-accent-gold text-4xl" /></div>
                             <h2 className="font-display text-2xl font-bold text-white mb-3">Account Under Review</h2>
-                            <p className="text-text-secondary text-sm mb-6 leading-relaxed max-w-sm mx-auto">
-                                Your venue owner application is being reviewed by our team. You'll get access to the dashboard once approved.
-                            </p>
+                            <p className="text-text-secondary text-sm mb-6 leading-relaxed max-w-sm mx-auto">Your venue owner application is being reviewed by our team. You'll get access to the dashboard once approved.</p>
                             <div className="bg-white/[0.03] border border-border-default rounded-xl p-5 mb-6 text-left space-y-2.5">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-accent-emerald/15 flex items-center justify-center shrink-0"><HiCheck className="text-accent-emerald" /></div>
-                                    <span className="text-text-secondary text-sm">Account created successfully</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-accent-gold/15 flex items-center justify-center shrink-0"><HiClock className="text-accent-gold text-sm" /></div>
-                                    <span className="text-text-secondary text-sm">Admin verification in progress</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-white/[0.06] flex items-center justify-center shrink-0 text-text-muted text-xs">3</div>
-                                    <span className="text-text-muted text-sm">Dashboard access after approval</span>
-                                </div>
+                                <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-accent-emerald/15 flex items-center justify-center shrink-0"><HiCheck className="text-accent-emerald" /></div><span className="text-text-secondary text-sm">Account created successfully</span></div>
+                                <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-accent-gold/15 flex items-center justify-center shrink-0"><HiClock className="text-accent-gold text-sm" /></div><span className="text-text-secondary text-sm">Admin verification in progress</span></div>
+                                <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-white/[0.06] flex items-center justify-center shrink-0 text-text-muted text-xs">3</div><span className="text-text-muted text-sm">Dashboard access after approval</span></div>
                             </div>
                             <p className="text-text-muted text-xs mb-4">Typically takes 24-48 hours</p>
                         </>
                     )}
                     <div className="flex gap-3 justify-center">
-                        <Link to="/" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-accent-emerald to-teal-500 text-white shadow-[0_4px_15px_rgba(16,185,129,0.3)] hover:-translate-y-0.5 transition-all duration-300">
-                            Back to Home
-                        </Link>
-                        <button onClick={handleLogout} className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-xl bg-white/[0.06] border border-border-default text-text-secondary hover:text-white transition-all duration-300">
-                            <HiLogout /> Logout
-                        </button>
+                        <Link to="/" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-accent-emerald to-teal-500 text-white shadow-[0_4px_15px_rgba(16,185,129,0.3)] hover:-translate-y-0.5 transition-all duration-300">Back to Home</Link>
+                        <button onClick={handleLogout} className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-xl bg-white/[0.06] border border-border-default text-text-secondary hover:text-white transition-all duration-300"><HiLogout /> Logout</button>
                     </div>
                 </motion.div>
             </div>
@@ -224,30 +170,7 @@ export default function VendorDashboard() {
 
     return (
         <div className="flex min-h-screen bg-bg-primary">
-            <aside className={`fixed top-0 left-0 h-full w-[260px] bg-bg-secondary border-r border-border-default flex flex-col z-50 transition-transform duration-300 max-lg:${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
-                <div className="p-5 pb-4 border-b border-border-default flex items-center justify-between">
-                    <Link to="/" className="text-xl font-extrabold text-white">Event<span className="bg-gradient-to-r from-accent-emerald to-teal-500 bg-clip-text text-transparent">Book</span></Link>
-                    <span className="px-2.5 py-0.5 bg-accent-emerald/15 text-accent-emerald text-[0.65rem] font-bold rounded-full uppercase tracking-wider">Vendor</span>
-                    <button className="lg:hidden text-text-muted text-xl" onClick={() => setSidebarOpen(false)}><HiX /></button>
-                </div>
-                <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-                    {navItems.map(item => (
-                        <button key={item.id} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 border-none cursor-pointer ${activeNav === item.id ? 'bg-accent-emerald/15 text-accent-emerald' : 'text-text-secondary hover:bg-white/5 hover:text-white bg-transparent'}`} onClick={() => { setActiveNav(item.id); setSidebarOpen(false); }}>
-                            {item.icon}<span>{item.label}</span>
-                            {item.id === 'reviews' && reviews.length > 0 && (
-                                <span className="ml-auto px-2 py-0.5 bg-accent-gold/20 text-accent-gold text-[10px] font-bold rounded-full">{reviews.length}</span>
-                            )}
-                        </button>
-                    ))}
-                </nav>
-                <div className="p-4 border-t border-border-default">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="w-9 h-9 flex items-center justify-center rounded-full bg-accent-emerald/15 text-accent-emerald text-lg"><HiOfficeBuilding /></div>
-                        <div><p className="text-sm font-medium text-white">{vendorUser?.name || 'Venue Owner'}</p><p className="text-xs text-text-muted">Venue Partner</p></div>
-                    </div>
-                    <button className="w-full flex items-center justify-center gap-2 py-2 bg-white/5 border border-border-default rounded-xl text-text-secondary text-sm hover:text-accent hover:border-accent/20 transition-all duration-300" onClick={handleLogout}><HiLogout /> Logout</button>
-                </div>
-            </aside>
+            <VendorSidebar navItems={navItems} activeNav={activeNav} setActiveNav={setActiveNav} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} vendorUser={vendorUser} reviews={reviews} onLogout={handleLogout} />
 
             <main className="flex-1 lg:ml-[260px]">
                 <header className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-bg-primary/85 backdrop-blur-xl border-b border-border-default">
@@ -255,785 +178,46 @@ export default function VendorDashboard() {
                         <button className="lg:hidden text-white text-xl" onClick={() => setSidebarOpen(true)}><HiMenu /></button>
                         <h1 className="text-xl font-bold text-white">{navItems.find(n => n.id === activeNav)?.label || 'Dashboard'}</h1>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <Link to="/vendor/add-venue" className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent-emerald to-teal-500 text-white text-sm font-semibold rounded-xl hover:-translate-y-0.5 transition-all duration-300"><HiPlus /> Add New Venue</Link>
-                    </div>
+                    <Link to="/vendor/add-venue" className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent-emerald to-teal-500 text-white text-sm font-semibold rounded-xl hover:-translate-y-0.5 transition-all duration-300"><HiPlus /> Add New Venue</Link>
                 </header>
 
                 <div className="p-6 space-y-6">
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-4 max-lg:grid-cols-2 max-sm:grid-cols-1 gap-4">
-                        {stats.map((stat, i) => (
-                            <motion.div key={i} className="flex items-center gap-4 p-5 bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-                                <div className="w-12 h-12 flex items-center justify-center rounded-[14px] text-xl" style={{ background: `color-mix(in srgb, ${stat.color} 15%, transparent)`, color: stat.color }}>{stat.icon}</div>
-                                <div>
-                                    <span className="text-2xl font-extrabold text-white block">{stat.value}</span>
-                                    <span className="text-text-muted text-xs">{stat.label}</span>
-                                    <span className="flex items-center gap-1 text-accent-emerald text-[0.7rem] mt-0.5"><HiTrendingUp /> {stat.change}</span>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
+                    <VendorStatsGrid stats={stats} />
 
-                    {/* ============ VENUES SECTION ============ */}
-                    {activeNav === 'venues' || activeNav === 'dashboard' ? (
-                        <motion.div className="bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                            <div className="flex items-center justify-between p-5 border-b border-border-default">
-                                <h2 className="text-lg font-semibold text-white">My Venues</h2>
-                                <Link to="/vendor/add-venue" className="flex items-center gap-1.5 px-4 py-2 bg-white/[0.06] border border-border-default rounded-xl text-text-secondary text-sm font-medium hover:text-white transition-all duration-300"><HiPlus /> Add Venue</Link>
-                            </div>
-                            <div className="p-5 grid gap-4">
-                                {myVenues.length > 0 ? myVenues.map(venue => (
-                                    <div key={venue._id} className="p-5 bg-white/[0.02] border border-border-default rounded-xl">
-                                        <div className="flex items-start justify-between mb-3 max-sm:flex-col max-sm:gap-2">
-                                            <div>
-                                                <h3 className="text-base font-semibold text-white">{venue.name}</h3>
-                                                <p className="text-text-muted text-xs mt-0.5">{venue.city} • {venue.area} • {venue.venueType}</p>
-                                            </div>
-                                            <span className={`px-2.5 py-0.5 text-[0.65rem] font-bold rounded-full uppercase tracking-wider border capitalize ${venue.isApproved ? 'bg-accent-emerald/15 text-accent-emerald border-accent-emerald/20' : 'bg-accent-gold/15 text-accent-gold border-accent-gold/20'}`}>
-                                                {venue.isApproved ? 'Approved' : 'Pending'}
-                                            </span>
-                                        </div>
-                                        <div className="grid grid-cols-3 max-sm:grid-cols-2 gap-3 mb-4">
-                                            <div className="text-center p-2 bg-bg-secondary rounded-lg"><span className="block text-base font-bold text-white">{venue.rating?.average || '-'}</span><span className="text-[0.65rem] text-text-muted">Rating</span></div>
-                                            <div className="text-center p-2 bg-bg-secondary rounded-lg"><span className="block text-base font-bold text-white">₹{venue.startingPrice?.toLocaleString('en-IN') || 0}</span><span className="text-[0.65rem] text-text-muted">Price</span></div>
-                                            <div className="text-center p-2 bg-bg-secondary rounded-lg"><span className="block text-base font-bold text-white">{venue.images?.length || 0}</span><span className="text-[0.65rem] text-text-muted">Photos</span></div>
-                                        </div>
-                                        <div className="flex gap-2 flex-wrap">
-                                            <Link to={`/vendor/edit-venue/${venue._id}`} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-border-default rounded-lg text-text-secondary text-xs font-medium hover:text-white hover:border-border-light transition-all duration-300"><HiPencil /> Edit</Link>
-                                            <Link to={`/venues/${venue._id}`} target="_blank" className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-border-default rounded-lg text-text-secondary text-xs font-medium hover:text-white hover:border-border-light transition-all duration-300"><HiEye /> View</Link>
-                                        </div>
-                                    </div>
-                                )) : <p className="text-text-muted text-center py-4">No venues found. Add your first venue!</p>}
-                            </div>
-                        </motion.div>
-                    ) : null}
+                    {(activeNav === 'venues' || activeNav === 'dashboard') && <VendorVenues venues={myVenues} />}
 
-                    {/* ============ BOOKINGS SECTION ============ */}
-                    {activeNav === 'bookings' || activeNav === 'dashboard' ? (
-                        <motion.div className="bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-                            <div className="flex items-center justify-between p-5 border-b border-border-default">
-                                <h2 className="text-lg font-semibold text-white">{activeNav === 'bookings' ? 'All Bookings' : 'Recent Bookings'}</h2>
-                                <span className="w-7 h-7 flex items-center justify-center bg-primary/15 text-primary-light text-xs font-bold rounded-full">{bookings.length}</span>
-                            </div>
-                            <div className={`p-5 space-y-4 overflow-y-auto ${activeNav === 'dashboard' ? 'max-h-[500px]' : ''}`}>
-                                {bookings.length > 0 ? bookings.map(b => (
-                                    <div key={b._id} className="p-4 bg-white/[0.02] border border-border-default rounded-xl">
-                                        <div className="flex justify-between gap-3 mb-2 max-sm:flex-col">
-                                            <div>
-                                                <h4 className="text-sm font-semibold text-white">{b.user?.name}</h4>
-                                                <p className="text-text-muted text-xs mt-0.5 capitalize">{b.eventType} • {b.venue?.name}</p>
-                                                <p className="text-text-muted text-[0.7rem] mt-1">📅 {new Date(b.eventDate).toLocaleDateString()} • 👥 {b.guestCount} guests • 🆔 {b.bookingId}</p>
-                                            </div>
-                                            <div className="text-right max-sm:text-left">
-                                                <span className="block text-base font-bold text-white">₹{b.pricing?.totalAmount?.toLocaleString('en-IN')}</span>
-                                                <div className="flex items-center gap-1.5 mt-1 max-sm:justify-start justify-end">
-                                                    <span className={`inline-block px-2 py-0.5 text-[0.6rem] font-bold rounded-full uppercase tracking-wider border capitalize ${statusCls(b.status)}`}>{b.status}</span>
-                                                    <span className={`inline-block px-2 py-0.5 text-[0.6rem] font-bold rounded-full uppercase tracking-wider border ${b.paymentStatus === 'advance-paid' ? 'bg-blue-500/15 text-blue-400 border-blue-500/20' : b.paymentStatus === 'refunded' ? 'bg-primary/15 text-primary-light border-primary/20' : 'bg-white/5 text-text-muted border-border-default'}`}>{b.paymentStatus}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-2 mt-3 pt-3 border-t border-border-default flex-wrap">
-                                            <button onClick={() => setSelectedBooking(b)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition-all duration-300"><HiEye /> View Details</button>
-                                            {b.status === 'pending' && (
-                                                <>
-                                                    <button onClick={() => updateStatus(b._id, 'confirmed')} className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all duration-300"><HiCheck /> Accept</button>
-                                                    <button onClick={() => openCancelModal(b._id, b.user?.name || b.bookingId)} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all duration-300"><HiXCircle /> Decline</button>
-                                                </>
-                                            )}
-                                            {b.status === 'confirmed' && (
-                                                <>
-                                                    <button onClick={() => updateStatus(b._id, 'completed')} className="flex items-center gap-1 px-3 py-1.5 bg-accent-emerald/10 border border-accent-emerald/20 rounded-lg text-accent-emerald text-xs font-semibold hover:bg-accent-emerald/20 transition-all duration-300"><HiCheck /> Mark Completed</button>
-                                                    <button onClick={() => openCancelModal(b._id, b.user?.name || b.bookingId)} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all duration-300"><HiXCircle /> Cancel</button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                )) : <p className="text-text-muted text-center py-4">No bookings received yet.</p>}
-                            </div>
-                        </motion.div>
-                    ) : null}
+                    {(activeNav === 'bookings' || activeNav === 'dashboard') && (
+                        <VendorBookings bookings={bookings} activeNav={activeNav} statusCls={statusCls} onViewDetails={setSelectedBooking} onAccept={(id) => updateStatus(id, 'confirmed')} onComplete={(id) => updateStatus(id, 'completed')} onCancel={openCancelModal} />
+                    )}
 
-                    {/* ============ EARNINGS SECTION ============ */}
                     {activeNav === 'earnings' && (
-                        <motion.div className="space-y-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                            {/* Revenue Overview Cards */}
-                            <div className="grid grid-cols-3 max-md:grid-cols-1 gap-4">
-                                <div className="p-6 bg-bg-card border border-border-default rounded-2xl">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-accent-emerald/15 text-accent-emerald text-lg"><HiCurrencyRupee /></div>
-                                        <span className="text-text-muted text-sm">Total Revenue</span>
-                                    </div>
-                                    <span className="text-3xl font-extrabold text-white">₹{totalRevenue.toLocaleString('en-IN')}</span>
-                                    <p className="text-accent-emerald text-xs mt-1 flex items-center gap-1"><HiTrendingUp /> From {confirmedBookings.length} confirmed bookings</p>
-                                </div>
-                                <div className="p-6 bg-bg-card border border-border-default rounded-2xl">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-accent-gold/15 text-accent-gold text-lg"><HiClock /></div>
-                                        <span className="text-text-muted text-sm">Pending Revenue</span>
-                                    </div>
-                                    <span className="text-3xl font-extrabold text-white">₹{pendingRevenue.toLocaleString('en-IN')}</span>
-                                    <p className="text-accent-gold text-xs mt-1">{pendingBookings.length} bookings awaiting confirmation</p>
-                                </div>
-                                <div className="p-6 bg-bg-card border border-border-default rounded-2xl">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-accent/15 text-accent text-lg"><HiXCircle /></div>
-                                        <span className="text-text-muted text-sm">Cancelled</span>
-                                    </div>
-                                    <span className="text-3xl font-extrabold text-white">{cancelledBookings.length}</span>
-                                    <p className="text-text-muted text-xs mt-1">Cancelled bookings</p>
-                                </div>
-                            </div>
-
-                            {/* Monthly Breakdown */}
-                            <div className="bg-bg-card border border-border-default rounded-2xl">
-                                <div className="p-5 border-b border-border-default">
-                                    <h2 className="text-lg font-semibold text-white">Monthly Earnings</h2>
-                                </div>
-                                <div className="p-5">
-                                    {Object.keys(monthlyEarnings).length > 0 ? (
-                                        <div className="space-y-3">
-                                            {Object.entries(monthlyEarnings).sort((a, b) => new Date(b[0]) - new Date(a[0])).map(([month, amount]) => (
-                                                <div key={month} className="flex items-center justify-between p-4 bg-white/[0.02] border border-border-default rounded-xl">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-primary/15 text-primary-light text-sm font-bold">{month.split(' ')[0].slice(0, 3)}</div>
-                                                        <span className="text-white font-medium">{month}</span>
-                                                    </div>
-                                                    <span className="text-accent-emerald font-bold text-lg">₹{amount.toLocaleString('en-IN')}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p className="text-text-muted text-center py-8">No earnings data yet. Start accepting bookings!</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Recent Transactions */}
-                            <div className="bg-bg-card border border-border-default rounded-2xl">
-                                <div className="p-5 border-b border-border-default">
-                                    <h2 className="text-lg font-semibold text-white">Recent Transactions</h2>
-                                </div>
-                                <div className="divide-y divide-border-default max-h-[400px] overflow-y-auto">
-                                    {confirmedBookings.length > 0 ? confirmedBookings.slice(0, 15).map(b => (
-                                        <div key={b._id} className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 rounded-full bg-accent-emerald/15 flex items-center justify-center text-accent-emerald text-sm"><HiCheck /></div>
-                                                <div>
-                                                    <p className="text-white text-sm font-medium">{b.user?.name}</p>
-                                                    <p className="text-text-muted text-xs capitalize">{b.eventType} • {b.venue?.name} • {new Date(b.eventDate).toLocaleDateString('en-IN')}</p>
-                                                </div>
-                                            </div>
-                                            <span className="text-accent-emerald font-bold">+₹{b.pricing?.totalAmount?.toLocaleString('en-IN')}</span>
-                                        </div>
-                                    )) : (
-                                        <p className="text-text-muted text-center py-8">No transactions yet.</p>
-                                    )}
-                                </div>
-                            </div>
-                        </motion.div>
+                        <VendorEarnings confirmedBookings={confirmedBookings} pendingBookings={pendingBookings} cancelledBookings={cancelledBookings} totalRevenue={totalRevenue} pendingRevenue={pendingRevenue} monthlyEarnings={monthlyEarnings} />
                     )}
 
-                    {/* ============ REVIEWS SECTION ============ */}
-                    {activeNav === 'reviews' && (
-                        <motion.div className="space-y-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                            {/* Reviews Summary */}
-                            <div className="grid grid-cols-[1fr_2fr] max-lg:grid-cols-1 gap-6">
-                                <div className="bg-bg-card border border-border-default rounded-2xl p-6 flex flex-col items-center justify-center">
-                                    <span className="text-5xl font-extrabold text-white mb-1">{avgRating}</span>
-                                    <div className="flex items-center gap-1 mb-2">
-                                        {[1, 2, 3, 4, 5].map(star => (
-                                            <HiStar key={star} className={`text-lg ${star <= Math.round(avgRating) ? 'text-accent-gold' : 'text-white/10'}`} />
-                                        ))}
-                                    </div>
-                                    <p className="text-text-muted text-sm">{reviews.length} total reviews</p>
+                    {activeNav === 'reviews' && <VendorReviews reviews={reviews} reviewsLoading={reviewsLoading} avgRating={avgRating} ratingDistribution={ratingDistribution} />}
 
-                                    <div className="w-full mt-6 space-y-2">
-                                        {ratingDistribution.map(({ star, count, percentage }) => (
-                                            <div key={star} className="flex items-center gap-2">
-                                                <span className="text-text-muted text-xs w-3">{star}</span>
-                                                <HiStar className="text-accent-gold text-xs" />
-                                                <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-accent-gold rounded-full transition-all duration-500" style={{ width: `${percentage}%` }} />
-                                                </div>
-                                                <span className="text-text-muted text-xs w-8 text-right">{count}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
+                    {activeNav === 'offers' && <VendorOffers myVenues={myVenues} />}
 
-                                <div className="bg-bg-card border border-border-default rounded-2xl">
-                                    <div className="p-5 border-b border-border-default">
-                                        <h2 className="text-lg font-semibold text-white">All Reviews</h2>
-                                    </div>
-                                    <div className="p-5 space-y-4 max-h-[500px] overflow-y-auto">
-                                        {reviewsLoading ? (
-                                            <p className="text-text-muted text-center py-4">Loading reviews...</p>
-                                        ) : reviews.length > 0 ? reviews.map(review => (
-                                            <div key={review._id} className="p-4 bg-white/[0.02] border border-border-default rounded-xl">
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-9 h-9 rounded-full bg-primary/15 text-primary-light flex items-center justify-center font-bold text-sm">
-                                                            {review.user?.avatar ? (
-                                                                <img src={review.user.avatar} alt={review.user.name} className="w-full h-full object-cover rounded-full" />
-                                                            ) : (
-                                                                review.user?.name?.charAt(0).toUpperCase() || 'U'
-                                                            )}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-white text-sm font-medium">{review.user?.name}</p>
-                                                            <p className="text-text-muted text-xs">{review.venue?.name} • {new Date(review.createdAt).toLocaleDateString('en-IN')}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-1">
-                                                        {[1, 2, 3, 4, 5].map(star => (
-                                                            <HiStar key={star} className={`text-sm ${star <= review.rating ? 'text-accent-gold' : 'text-white/10'}`} />
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                {review.title && <h4 className="text-white text-sm font-semibold mt-2">{review.title}</h4>}
-                                                {review.comment && <p className="text-text-secondary text-sm mt-1 leading-relaxed">{review.comment}</p>}
-                                                {review.eventType && (
-                                                    <span className="inline-block mt-2 px-2.5 py-0.5 bg-primary/10 text-primary-light border border-primary/20 rounded-full text-[0.65rem] capitalize">{review.eventType}</span>
-                                                )}
-                                            </div>
-                                        )) : (
-                                            <div className="text-center py-8">
-                                                <HiStar className="text-4xl text-white/10 mx-auto mb-3" />
-                                                <p className="text-text-muted">No reviews yet.</p>
-                                                <p className="text-text-muted text-xs mt-1">Reviews will appear here once customers review your venues.</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
+                    {activeNav === 'enquiries' && <VendorEnquiries />}
 
-                    {/* ============ OFFERS / DISCOUNTS SECTION ============ */}
-                    {activeNav === 'offers' && (
-                        <motion.div className="space-y-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                            {/* Header */}
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-lg font-semibold text-white">Offers & Discounts</h2>
-                                    <p className="text-text-muted text-xs mt-0.5">Create special offers for your venues to boost bookings</p>
-                                </div>
-                                <button onClick={() => setShowOfferForm(!showOfferForm)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent-emerald to-teal-500 text-white text-sm font-semibold rounded-xl hover:-translate-y-0.5 transition-all duration-300">
-                                    <HiPlus /> Create Offer
-                                </button>
-                            </div>
-
-                            {/* Create Offer Form */}
-                            <AnimatePresence>
-                                {showOfferForm && (
-                                    <motion.div className="bg-bg-card border border-border-default rounded-2xl" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                                        <div className="p-5 border-b border-border-default">
-                                            <h3 className="text-base font-semibold text-white flex items-center gap-2"><HiTag className="text-accent-emerald" /> New Offer</h3>
-                                        </div>
-                                        <div className="p-5 space-y-4">
-                                            <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-4">
-                                                <div>
-                                                    <label className="text-xs font-medium text-text-muted mb-1.5 block uppercase tracking-wide">Offer Title</label>
-                                                    <input type="text" value={offerForm.title} onChange={e => setOfferForm({ ...offerForm, title: e.target.value })} className="w-full px-4 py-3 bg-white/[0.03] border border-border-default rounded-xl text-white text-sm outline-none focus:border-accent-emerald transition-all" placeholder="e.g. Summer Special 20% Off" />
-                                                </div>
-                                                <div>
-                                                    <label className="text-xs font-medium text-text-muted mb-1.5 block uppercase tracking-wide">Discount %</label>
-                                                    <input type="number" value={offerForm.discountPercent} onChange={e => setOfferForm({ ...offerForm, discountPercent: e.target.value })} className="w-full px-4 py-3 bg-white/[0.03] border border-border-default rounded-xl text-white text-sm outline-none focus:border-accent-emerald transition-all" placeholder="e.g. 15" min="1" max="50" />
-                                                </div>
-                                                <div>
-                                                    <label className="text-xs font-medium text-text-muted mb-1.5 block uppercase tracking-wide">Offer Type</label>
-                                                    <select value={offerForm.offerType} onChange={e => setOfferForm({ ...offerForm, offerType: e.target.value })} className="w-full px-4 py-3 bg-white/[0.03] border border-border-default rounded-xl text-white text-sm outline-none focus:border-accent-emerald transition-all appearance-none">
-                                                        <option value="seasonal" className="bg-bg-secondary">🌞 Seasonal</option>
-                                                        <option value="early-bird" className="bg-bg-secondary">🐤 Early Bird</option>
-                                                        <option value="last-minute" className="bg-bg-secondary">⚡ Last-Minute Deal</option>
-                                                        <option value="weekday" className="bg-bg-secondary">📅 Weekday Special</option>
-                                                        <option value="bundle" className="bg-bg-secondary">🎁 Bundle Offer</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="text-xs font-medium text-text-muted mb-1.5 block uppercase tracking-wide">Venue</label>
-                                                    <select value={offerForm.venueId} onChange={e => setOfferForm({ ...offerForm, venueId: e.target.value })} className="w-full px-4 py-3 bg-white/[0.03] border border-border-default rounded-xl text-white text-sm outline-none focus:border-accent-emerald transition-all appearance-none">
-                                                        <option value="" className="bg-bg-secondary">All Venues</option>
-                                                        {myVenues.map(v => <option key={v._id} value={v._id} className="bg-bg-secondary">{v.name}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="text-xs font-medium text-text-muted mb-1.5 block uppercase tracking-wide">Valid From</label>
-                                                    <input type="date" value={offerForm.validFrom} onChange={e => setOfferForm({ ...offerForm, validFrom: e.target.value })} className="w-full px-4 py-3 bg-white/[0.03] border border-border-default rounded-xl text-white text-sm outline-none focus:border-accent-emerald transition-all" />
-                                                </div>
-                                                <div>
-                                                    <label className="text-xs font-medium text-text-muted mb-1.5 block uppercase tracking-wide">Valid To</label>
-                                                    <input type="date" value={offerForm.validTo} onChange={e => setOfferForm({ ...offerForm, validTo: e.target.value })} className="w-full px-4 py-3 bg-white/[0.03] border border-border-default rounded-xl text-white text-sm outline-none focus:border-accent-emerald transition-all" />
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="text-xs font-medium text-text-muted mb-1.5 block uppercase tracking-wide">Description</label>
-                                                <textarea value={offerForm.description} onChange={e => setOfferForm({ ...offerForm, description: e.target.value })} rows={2} className="w-full px-4 py-3 bg-white/[0.03] border border-border-default rounded-xl text-white text-sm outline-none focus:border-accent-emerald transition-all resize-none" placeholder="Describe the offer details..." />
-                                            </div>
-                                            <div className="flex justify-end gap-3">
-                                                <button onClick={() => setShowOfferForm(false)} className="px-5 py-2.5 bg-white/5 border border-border-default rounded-xl text-text-secondary text-sm font-medium hover:text-white transition-all">Cancel</button>
-                                                <button onClick={() => {
-                                                    if (!offerForm.title || !offerForm.discountPercent) { toast.error('Title and discount are required'); return; }
-                                                    const newOffer = { ...offerForm, id: Date.now(), createdAt: new Date().toISOString(), isActive: true, venueName: myVenues.find(v => v._id === offerForm.venueId)?.name || 'All Venues' };
-                                                    const updated = [...offers, newOffer];
-                                                    setOffers(updated);
-                                                    localStorage.setItem('vendor_offers', JSON.stringify(updated));
-                                                    setOfferForm({ title: '', description: '', discountPercent: '', validFrom: '', validTo: '', venueId: '', offerType: 'seasonal' });
-                                                    setShowOfferForm(false);
-                                                    toast.success('Offer created successfully!');
-                                                }} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent-emerald to-teal-500 text-white text-sm font-semibold rounded-xl hover:-translate-y-0.5 transition-all shadow-[0_4px_15px_rgba(16,185,129,0.3)]">
-                                                    <HiCheck /> Create Offer
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-
-                            {/* Offers List */}
-                            {offers.length > 0 ? (
-                                <div className="space-y-4">
-                                    {offers.map((offer) => {
-                                        const typeEmoji = { seasonal: '🌞', 'early-bird': '🐤', 'last-minute': '⚡', weekday: '📅', bundle: '🎁' };
-                                        const isExpired = offer.validTo && new Date(offer.validTo) < new Date();
-                                        return (
-                                            <motion.div key={offer.id} className={`bg-bg-card border rounded-2xl overflow-hidden ${isExpired ? 'border-border-default opacity-60' : 'border-accent-emerald/20'}`} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
-                                                <div className="p-5 flex items-start justify-between gap-4 max-sm:flex-col">
-                                                    <div className="flex items-start gap-4">
-                                                        <div className="w-14 h-14 rounded-2xl bg-accent-emerald/15 flex items-center justify-center text-2xl shrink-0">
-                                                            {typeEmoji[offer.offerType] || '🏷️'}
-                                                        </div>
-                                                        <div>
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <h3 className="text-base font-semibold text-white">{offer.title}</h3>
-                                                                <span className="px-2 py-0.5 bg-accent-emerald/15 text-accent-emerald text-[10px] font-bold rounded-full">{offer.discountPercent}% OFF</span>
-                                                                {isExpired && <span className="px-2 py-0.5 bg-accent/15 text-accent text-[10px] font-bold rounded-full">EXPIRED</span>}
-                                                            </div>
-                                                            {offer.description && <p className="text-text-secondary text-sm mb-2">{offer.description}</p>}
-                                                            <div className="flex items-center gap-3 text-text-muted text-xs flex-wrap">
-                                                                <span>📍 {offer.venueName}</span>
-                                                                <span className="capitalize">🏷️ {offer.offerType.replace('-', ' ')}</span>
-                                                                {offer.validFrom && <span>📅 {new Date(offer.validFrom).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - {new Date(offer.validTo).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <button onClick={() => {
-                                                        const updated = offers.filter(o => o.id !== offer.id);
-                                                        setOffers(updated);
-                                                        localStorage.setItem('vendor_offers', JSON.stringify(updated));
-                                                        toast.success('Offer removed');
-                                                    }} className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-accent text-xs font-semibold hover:bg-accent/20 transition-all shrink-0">
-                                                        <HiTrash /> Remove
-                                                    </button>
-                                                </div>
-                                            </motion.div>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <div className="bg-bg-card border border-border-default rounded-2xl p-12 text-center">
-                                    <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-accent-emerald/20 to-teal-500/10 flex items-center justify-center"><HiTag className="text-3xl text-accent-emerald" /></div>
-                                    <h3 className="text-xl font-bold text-white mb-2">No Offers Yet</h3>
-                                    <p className="text-text-secondary text-sm max-w-md mx-auto">Create special offers and discounts to attract more customers and boost your bookings during off-peak seasons.</p>
-                                </div>
-                            )}
-                        </motion.div>
-                    )}
-
-                    {/* ============ ENQUIRIES SECTION ============ */}
-                    {activeNav === 'enquiries' && (
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                            <div className="bg-bg-card border border-border-default rounded-2xl p-12 text-center">
-                                <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/20 to-primary-light/10 flex items-center justify-center">
-                                    <HiClipboardList className="text-3xl text-primary-light" />
-                                </div>
-                                <h2 className="text-2xl font-bold text-white mb-2">Enquiries Coming Soon</h2>
-                                <p className="text-text-secondary max-w-md mx-auto mb-6">
-                                    We're building a powerful enquiry management system where you'll be able to receive, respond to, and track customer enquiries for your venues.
-                                </p>
-                                <div className="grid grid-cols-3 max-sm:grid-cols-1 gap-4 max-w-lg mx-auto">
-                                    {[
-                                        { icon: '💬', label: 'Direct Messages', desc: 'Chat with potential customers' },
-                                        { icon: '📋', label: 'Quote Requests', desc: 'Send custom price quotes' },
-                                        { icon: '📊', label: 'Lead Tracking', desc: 'Track conversion rates' },
-                                    ].map((feature, i) => (
-                                        <div key={i} className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
-                                            <span className="text-2xl block mb-2">{feature.icon}</span>
-                                            <h4 className="text-white text-sm font-semibold mb-1">{feature.label}</h4>
-                                            <p className="text-text-muted text-xs">{feature.desc}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* ============ SETTINGS SECTION ============ */}
                     {activeNav === 'settings' && (
-                        <motion.div className="space-y-6 max-w-2xl" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                            {/* Profile Settings */}
-                            <div className="bg-bg-card border border-border-default rounded-2xl">
-                                <div className="p-5 border-b border-border-default">
-                                    <h2 className="text-lg font-semibold text-white flex items-center gap-2"><HiUser className="text-primary-light" /> Profile Settings</h2>
-                                </div>
-                                <div className="p-5 space-y-4">
-                                    <div>
-                                        <label className="flex items-center gap-1.5 text-xs font-medium text-text-muted mb-2 uppercase tracking-wide">
-                                            <HiUser className="text-sm" /> Full Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={settingsForm.name}
-                                            onChange={(e) => setSettingsForm({ ...settingsForm, name: e.target.value })}
-                                            className="w-full px-4 py-3 bg-white/[0.03] border border-border-default rounded-xl text-white text-sm outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(108,60,225,0.15)] transition-all"
-                                            placeholder="Your full name"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="flex items-center gap-1.5 text-xs font-medium text-text-muted mb-2 uppercase tracking-wide">
-                                            <HiMail className="text-sm" /> Email Address
-                                        </label>
-                                        <div className="w-full px-4 py-3 bg-white/[0.02] border border-border-default rounded-xl text-text-secondary text-sm">
-                                            {vendorUser?.email || '—'}
-                                            <span className="text-text-muted text-xs ml-2">(cannot change)</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="flex items-center gap-1.5 text-xs font-medium text-text-muted mb-2 uppercase tracking-wide">
-                                            <HiPhone className="text-sm" /> Mobile Number
-                                        </label>
-                                        <input
-                                            type="tel"
-                                            value={settingsForm.mobile}
-                                            onChange={(e) => setSettingsForm({ ...settingsForm, mobile: e.target.value })}
-                                            className="w-full px-4 py-3 bg-white/[0.03] border border-border-default rounded-xl text-white text-sm outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(108,60,225,0.15)] transition-all"
-                                            placeholder="+91 98765 43210"
-                                        />
-                                    </div>
-                                    <div className="flex justify-end pt-2">
-                                        <button
-                                            onClick={handleSettingsSave}
-                                            disabled={settingsLoading}
-                                            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-accent-emerald to-teal-500 text-white text-sm font-semibold rounded-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 shadow-[0_4px_15px_rgba(16,185,129,0.3)]"
-                                        >
-                                            <HiSave /> {settingsLoading ? 'Saving...' : 'Save Changes'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Account Info */}
-                            <div className="bg-bg-card border border-border-default rounded-2xl">
-                                <div className="p-5 border-b border-border-default">
-                                    <h2 className="text-lg font-semibold text-white flex items-center gap-2"><HiLockClosed className="text-primary-light" /> Account Information</h2>
-                                </div>
-                                <div className="p-5 space-y-4">
-                                    <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-border-default rounded-xl">
-                                        <div>
-                                            <p className="text-white text-sm font-medium">Account Role</p>
-                                            <p className="text-text-muted text-xs capitalize">{vendorUser?.role || 'vendor'}</p>
-                                        </div>
-                                        <span className="px-3 py-1 bg-accent-emerald/15 text-accent-emerald text-xs font-bold rounded-full uppercase">{vendorUser?.role}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-border-default rounded-xl">
-                                        <div>
-                                            <p className="text-white text-sm font-medium">Member Since</p>
-                                            <p className="text-text-muted text-xs">
-                                                {vendorUser?.createdAt ? new Date(vendorUser.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-border-default rounded-xl">
-                                        <div>
-                                            <p className="text-white text-sm font-medium">Active Venues</p>
-                                            <p className="text-text-muted text-xs">{myVenues.length} venues listed</p>
-                                        </div>
-                                        <span className="text-white font-bold text-lg">{myVenues.length}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
+                        <VendorSettings vendorUser={vendorUser} settingsForm={settingsForm} setSettingsForm={setSettingsForm} settingsLoading={settingsLoading} onSave={handleSettingsSave} myVenues={myVenues} />
                     )}
                 </div>
-            </main >
+            </main>
 
-            {sidebarOpen && <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
-            }
+            {sidebarOpen && <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-            {/* ==================== BOOKING DETAIL MODAL ==================== */}
-            <AnimatePresence>
-                {selectedBooking && (
-                    <motion.div
-                        className="fixed inset-0 z-[100] flex items-start justify-center bg-black/70 backdrop-blur-sm overflow-y-auto py-8 px-4"
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        onClick={() => setSelectedBooking(null)}
-                    >
-                        <motion.div
-                            className="bg-bg-secondary border border-border-default rounded-2xl w-full max-w-2xl shadow-2xl relative"
-                            initial={{ opacity: 0, y: 40, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 40, scale: 0.95 }}
-                            transition={{ type: 'spring', damping: 25 }}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {/* Modal Header */}
-                            <div className="flex items-center justify-between p-5 border-b border-border-default">
-                                <div>
-                                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                        <HiDocumentText className="text-accent-emerald" /> Booking Details
-                                    </h2>
-                                    <p className="text-text-muted text-xs mt-0.5">ID: {selectedBooking.bookingId}</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full uppercase ${statusCls(selectedBooking.status)}`}>
-                                        {selectedBooking.status}
-                                    </span>
-                                    <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full uppercase ${selectedBooking.paymentStatus === 'advance-paid' ? 'bg-blue-500/15 text-blue-400' : selectedBooking.paymentStatus === 'refunded' ? 'bg-primary/15 text-primary-light' : 'bg-white/5 text-text-muted'}`}>
-                                        {selectedBooking.paymentStatus}
-                                    </span>
-                                    <button onClick={() => setSelectedBooking(null)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-text-muted hover:text-white hover:bg-white/10 transition-all"><HiX /></button>
-                                </div>
-                            </div>
+            {selectedBooking && (
+                <BookingDetailModal
+                    booking={selectedBooking} statusCls={statusCls} onClose={() => setSelectedBooking(null)}
+                    onAccept={() => { updateStatus(selectedBooking._id, 'confirmed'); setSelectedBooking(prev => ({ ...prev, status: 'confirmed' })); }}
+                    onComplete={() => { updateStatus(selectedBooking._id, 'completed'); setSelectedBooking(prev => ({ ...prev, status: 'completed' })); }}
+                    onCancel={openCancelModal}
+                />
+            )}
 
-                            {/* Modal Body */}
-                            <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto">
-                                {/* Customer Info */}
-                                <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
-                                    <span className="text-text-muted text-xs block mb-3 uppercase tracking-wider font-medium">Customer Information</span>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-11 h-11 rounded-full bg-accent-emerald/15 text-accent-emerald flex items-center justify-center font-bold text-lg">
-                                            {selectedBooking.user?.name?.[0]?.toUpperCase() || 'U'}
-                                        </div>
-                                        <div>
-                                            <p className="text-white font-semibold">{selectedBooking.user?.name || 'Unknown'}</p>
-                                            <div className="flex items-center gap-3 text-text-muted text-xs mt-0.5">
-                                                <span className="flex items-center gap-1"><HiMail className="text-sm" /> {selectedBooking.user?.email}</span>
-                                                {selectedBooking.user?.mobile && <span className="flex items-center gap-1"><HiPhone className="text-sm" /> {selectedBooking.user.mobile}</span>}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Event & Venue Info */}
-                                <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-4">
-                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
-                                        <span className="text-text-muted text-xs block mb-1">Venue</span>
-                                        <span className="text-white font-medium">{selectedBooking.venue?.name}</span>
-                                        <p className="text-text-muted text-xs mt-0.5">{selectedBooking.venue?.area}, {selectedBooking.venue?.city}</p>
-                                    </div>
-                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
-                                        <span className="text-text-muted text-xs block mb-1">Event Type</span>
-                                        <span className="text-white font-medium capitalize">{selectedBooking.eventType}</span>
-                                    </div>
-                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
-                                        <span className="text-text-muted text-xs block mb-1">Event Date</span>
-                                        <span className="text-white font-medium flex items-center gap-1.5">
-                                            <HiCalendar className="text-accent-emerald" />
-                                            {new Date(selectedBooking.eventDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                                        </span>
-                                        {selectedBooking.eventTime?.start && (
-                                            <p className="text-text-muted text-xs mt-0.5 flex items-center gap-1"><HiClock className="text-sm" /> {selectedBooking.eventTime.start} - {selectedBooking.eventTime.end}</p>
-                                        )}
-                                    </div>
-                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
-                                        <span className="text-text-muted text-xs block mb-1">Guest Count</span>
-                                        <span className="text-white font-medium flex items-center gap-1.5">
-                                            <HiUserGroup className="text-accent-emerald" /> {selectedBooking.guestCount} guests
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Package Selected */}
-                                {selectedBooking.packageSelected?.name && (
-                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
-                                        <span className="text-text-muted text-xs block mb-2 uppercase tracking-wider font-medium">Package Selected</span>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-white font-semibold">{selectedBooking.packageSelected.name}</span>
-                                            <span className="text-accent-emerald font-bold">₹{selectedBooking.packageSelected.price?.toLocaleString('en-IN')}</span>
-                                        </div>
-                                        {selectedBooking.packageSelected.includes?.length > 0 && (
-                                            <div className="flex flex-wrap gap-1.5 mt-2">
-                                                {selectedBooking.packageSelected.includes.map((item, i) => (
-                                                    <span key={i} className="px-2 py-0.5 bg-accent-emerald/10 text-accent-emerald border border-accent-emerald/15 rounded-full text-[10px] flex items-center gap-1"><HiCheck className="text-[10px]" /> {item}</span>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Add-ons */}
-                                {selectedBooking.addOns?.length > 0 && (
-                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
-                                        <span className="text-text-muted text-xs block mb-2 uppercase tracking-wider font-medium">Add-ons</span>
-                                        <div className="space-y-1.5">
-                                            {selectedBooking.addOns.map((addon, i) => (
-                                                <div key={i} className="flex items-center justify-between text-sm">
-                                                    <span className="text-text-secondary">{addon.name}</span>
-                                                    <span className="text-white font-medium">₹{addon.price?.toLocaleString('en-IN')}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Pricing Breakdown */}
-                                <div className="p-4 bg-gradient-to-br from-accent-emerald/5 to-teal-500/5 border border-accent-emerald/15 rounded-xl">
-                                    <span className="text-text-muted text-xs block mb-3 uppercase tracking-wider font-medium">Pricing Breakdown</span>
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-text-secondary">Base Price</span>
-                                            <span className="text-white">₹{selectedBooking.pricing?.basePrice?.toLocaleString('en-IN')}</span>
-                                        </div>
-                                        {selectedBooking.pricing?.addOnsTotal > 0 && (
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-text-secondary">Add-ons</span>
-                                                <span className="text-white">₹{selectedBooking.pricing.addOnsTotal.toLocaleString('en-IN')}</span>
-                                            </div>
-                                        )}
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-text-secondary">Tax (18% GST)</span>
-                                            <span className="text-white">₹{selectedBooking.pricing?.tax?.toLocaleString('en-IN')}</span>
-                                        </div>
-                                        <div className="border-t border-border-default my-2" />
-                                        <div className="flex justify-between text-base font-bold">
-                                            <span className="text-white">Total Amount</span>
-                                            <span className="text-accent-emerald">₹{selectedBooking.pricing?.totalAmount?.toLocaleString('en-IN')}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm mt-1">
-                                            <span className="text-text-secondary">Advance (20%)</span>
-                                            <span className="text-blue-400 font-medium">₹{selectedBooking.pricing?.advanceAmount?.toLocaleString('en-IN')}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-text-secondary">Remaining</span>
-                                            <span className="text-accent-gold font-medium">₹{selectedBooking.pricing?.remainingAmount?.toLocaleString('en-IN')}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Special Notes */}
-                                {selectedBooking.specialNotes && (
-                                    <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
-                                        <span className="text-text-muted text-xs block mb-2 uppercase tracking-wider font-medium">Special Notes</span>
-                                        <p className="text-text-secondary text-sm leading-relaxed">{selectedBooking.specialNotes}</p>
-                                    </div>
-                                )}
-
-                                {/* Booking Timeline */}
-                                <div className="p-4 bg-white/[0.03] border border-border-default rounded-xl">
-                                    <span className="text-text-muted text-xs block mb-2 uppercase tracking-wider font-medium">Booking Info</span>
-                                    <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-3 text-sm">
-                                        <div>
-                                            <span className="text-text-muted text-xs">Booked On</span>
-                                            <p className="text-white">{new Date(selectedBooking.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-                                        </div>
-                                        {selectedBooking.razorpayPaymentId && (
-                                            <div>
-                                                <span className="text-text-muted text-xs">Payment ID</span>
-                                                <p className="text-white text-xs font-mono">{selectedBooking.razorpayPaymentId}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Modal Footer — Actions */}
-                            {(selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed') && (
-                                <div className="flex items-center justify-end gap-2 p-5 border-t border-border-default bg-white/[0.01] rounded-b-2xl">
-                                    {selectedBooking.status === 'pending' && (
-                                        <>
-                                            <button onClick={() => { updateStatus(selectedBooking._id, 'confirmed'); setSelectedBooking(prev => ({ ...prev, status: 'confirmed' })); }} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent-emerald text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent-emerald/25">
-                                                <HiCheck /> Accept Booking
-                                            </button>
-                                            <button onClick={() => openCancelModal(selectedBooking._id, selectedBooking.user?.name || selectedBooking.bookingId)} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent/25">
-                                                <HiXCircle /> Decline
-                                            </button>
-                                        </>
-                                    )}
-                                    {selectedBooking.status === 'confirmed' && (
-                                        <>
-                                            <button onClick={() => { updateStatus(selectedBooking._id, 'completed'); setSelectedBooking(prev => ({ ...prev, status: 'completed' })); }} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent-emerald text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent-emerald/25">
-                                                <HiCheck /> Mark Completed
-                                            </button>
-                                            <button onClick={() => openCancelModal(selectedBooking._id, selectedBooking.user?.name || selectedBooking.bookingId)} className="flex items-center gap-1.5 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent/25">
-                                                <HiXCircle /> Cancel
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            )}
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* ==================== CANCEL REASON MODAL ==================== */}
-            <AnimatePresence>
-                {cancelModal.open && (
-                    <motion.div
-                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        onClick={() => setCancelModal({ open: false, bookingId: null, bookingName: '' })}
-                    >
-                        <motion.div
-                            className="bg-bg-secondary border border-border-default rounded-2xl w-full max-w-md shadow-2xl"
-                            initial={{ opacity: 0, y: 30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.95 }}
-                            transition={{ type: 'spring', damping: 25 }}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {/* Header */}
-                            <div className="p-5 border-b border-border-default">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-accent/15 text-accent text-xl">
-                                        <HiXCircle />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-white">Cancel Booking</h3>
-                                        <p className="text-text-muted text-xs">for {cancelModal.bookingName}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Body */}
-                            <div className="p-5 space-y-4">
-                                <div>
-                                    <label className="text-xs font-medium text-text-muted mb-2 block uppercase tracking-wide">
-                                        Reason for Cancellation <span className="text-accent">*</span>
-                                    </label>
-                                    <textarea
-                                        value={cancelReason}
-                                        onChange={(e) => setCancelReason(e.target.value)}
-                                        rows={3}
-                                        className="w-full px-4 py-3 bg-white/[0.03] border border-border-default rounded-xl text-white text-sm outline-none focus:border-accent focus:shadow-[0_0_0_3px_rgba(255,107,107,0.15)] transition-all resize-none placeholder:text-text-muted"
-                                        placeholder="e.g., Venue unavailable on that date, Double booking, Maintenance work..."
-                                        autoFocus
-                                    />
-                                </div>
-                                <div className="p-3 bg-accent/5 border border-accent/15 rounded-lg">
-                                    <p className="text-text-secondary text-xs leading-relaxed">
-                                        ⚠️ The customer will receive an <strong className="text-white">email notification</strong> with this reason. If payment was made, a refund will be automatically initiated.
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Footer */}
-                            <div className="flex items-center justify-end gap-2 p-5 border-t border-border-default">
-                                <button
-                                    onClick={() => setCancelModal({ open: false, bookingId: null, bookingName: '' })}
-                                    className="px-5 py-2.5 bg-white/5 border border-border-default rounded-xl text-text-secondary text-sm font-medium hover:text-white hover:bg-white/10 transition-all"
-                                >
-                                    Go Back
-                                </button>
-                                <button
-                                    onClick={handleCancelWithReason}
-                                    disabled={cancelLoading || !cancelReason.trim()}
-                                    className="flex items-center gap-1.5 px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-accent/25 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <HiXCircle /> {cancelLoading ? 'Cancelling...' : 'Confirm Cancellation'}
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div >
+            <CancelBookingModal cancelModal={cancelModal} cancelReason={cancelReason} setCancelReason={setCancelReason} cancelLoading={cancelLoading} onConfirm={handleCancelWithReason} onClose={() => setCancelModal({ open: false, bookingId: null, bookingName: '' })} />
+        </div>
     );
 }

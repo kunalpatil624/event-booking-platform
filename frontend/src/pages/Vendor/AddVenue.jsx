@@ -406,23 +406,56 @@ export default function AddVenue() {
 
                         {/* Packages */}
                         <div className="space-y-6 mb-8 pt-8 border-t border-border-default">
-                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <span className="w-8 h-8 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-sm">5</span>
-                                Packages & Pricing
-                            </h3>
+                            <div>
+                                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                    <span className="w-8 h-8 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-sm">5</span>
+                                    Packages & Pricing
+                                </h3>
+                                <p className="text-text-muted text-xs mt-2 ml-10">Create booking packages for your venue. Each package should have a name, price, and what's included.</p>
+                            </div>
+
+                            {/* Example hint */}
+                            {formData.packages.length === 0 && (
+                                <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl">
+                                    <p className="text-primary-light text-xs font-semibold mb-2">💡 Example Package:</p>
+                                    <div className="text-text-muted text-xs space-y-1">
+                                        <p><span className="text-white">Name:</span> Gold Package</p>
+                                        <p><span className="text-white">Price:</span> ₹2,50,000</p>
+                                        <p><span className="text-white">Description:</span> Complete wedding package for 300 guests</p>
+                                        <p><span className="text-white">Includes:</span> Decoration, Food, DJ, Lighting, Stage</p>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="space-y-4">
                                 {formData.packages.map((pkg, index) => (
-                                    <div key={index} className="p-4 bg-white/[0.03] border border-border-default rounded-xl space-y-3 relative">
-                                        <button type="button" onClick={() => removePackage(index)} className="absolute top-2 right-2 text-text-muted hover:text-red-400"><HiTrash /></button>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <input type="text" value={pkg.name} onChange={(e) => updatePackage(index, 'name', e.target.value)} placeholder="Package Name" className={inputCls} required />
-                                            <input type="number" value={pkg.price} onChange={(e) => updatePackage(index, 'price', e.target.value)} placeholder="Price (₹)" className={inputCls} required />
+                                    <div key={index} className="p-5 bg-white/[0.03] border border-border-default rounded-xl space-y-4 relative">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-xs font-bold text-primary-light uppercase tracking-wider">Package {index + 1}</span>
+                                            <button type="button" onClick={() => removePackage(index)} className="flex items-center gap-1 text-text-muted hover:text-red-400 text-xs"><HiTrash /> Remove</button>
                                         </div>
-                                        <input type="text" value={pkg.description} onChange={(e) => updatePackage(index, 'description', e.target.value)} placeholder="Short Description" className={inputCls} />
-                                        <input type="text" value={pkg.includes} onChange={(e) => updatePackage(index, 'includes', e.target.value)} placeholder="Includes (comma separated, e.g. Decor, Food, DJ)" className={inputCls} />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-xs text-text-muted mb-1 block">Package Name *</label>
+                                                <input type="text" value={pkg.name} onChange={(e) => updatePackage(index, 'name', e.target.value)} placeholder="e.g. Silver, Gold, Premium" className={inputCls} required />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-text-muted mb-1 block">Price (₹) *</label>
+                                                <input type="number" value={pkg.price} onChange={(e) => updatePackage(index, 'price', e.target.value)} placeholder="e.g. 150000" className={inputCls} required />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-text-muted mb-1 block">Short Description</label>
+                                            <input type="text" value={pkg.description} onChange={(e) => updatePackage(index, 'description', e.target.value)} placeholder="e.g. Budget friendly package for 200 guests" className={inputCls} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-text-muted mb-1 block">What's Included <span className="text-text-muted/60">(comma separated)</span></label>
+                                            <input type="text" value={pkg.includes} onChange={(e) => updatePackage(index, 'includes', e.target.value)} placeholder="e.g. Decoration, Catering, DJ, Stage, Lighting" className={inputCls} />
+                                            <p className="text-text-muted/50 text-[10px] mt-1">Separate each item with a comma</p>
+                                        </div>
                                     </div>
                                 ))}
-                                <button type="button" onClick={addPackage} className="flex items-center gap-2 text-primary-light text-sm font-medium hover:text-white transition-colors">
+                                <button type="button" onClick={addPackage} className="flex items-center gap-2 px-4 py-2.5 text-primary-light text-sm font-medium hover:text-white border border-dashed border-primary/30 rounded-xl hover:border-primary/60 transition-all w-full justify-center">
                                     <HiPlus /> Add Package
                                 </button>
                             </div>
@@ -430,33 +463,70 @@ export default function AddVenue() {
 
                         {/* Food Menu */}
                         <div className="space-y-6 mb-8 pt-8 border-t border-border-default">
-                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <span className="w-8 h-8 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-sm">6</span>
-                                Food Menu
-                            </h3>
+                            <div>
+                                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                    <span className="w-8 h-8 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-sm">6</span>
+                                    Food Menu
+                                </h3>
+                                <p className="text-text-muted text-xs mt-2 ml-10">Add your food menu by categories (like Starters, Main Course, Desserts) and add items under each category.</p>
+                            </div>
+
+                            {/* Example hint */}
+                            {formData.foodMenu.length === 0 && (
+                                <div className="p-4 bg-accent-emerald/5 border border-accent-emerald/10 rounded-xl">
+                                    <p className="text-accent-emerald text-xs font-semibold mb-2">💡 How it works:</p>
+                                    <div className="text-text-muted text-xs space-y-2">
+                                        <p><span className="text-white font-medium">Step 1:</span> Click "Add Menu Category" → Enter category name (e.g. <span className="text-white">Starters</span>)</p>
+                                        <p><span className="text-white font-medium">Step 2:</span> Click "+ Add Item" under the category → Enter item name (e.g. <span className="text-white">Paneer Tikka</span>), price (<span className="text-white">₹250</span>), and type (Veg/Non-Veg)</p>
+                                        <p><span className="text-white font-medium">Step 3:</span> Add more items and categories as needed</p>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="space-y-6">
                                 {formData.foodMenu.map((cat, i) => (
                                     <div key={i} className="p-5 bg-white/[0.03] border border-border-default rounded-xl relative">
-                                        <button type="button" onClick={() => removeMenuCategory(i)} className="absolute top-3 right-3 text-text-muted hover:text-red-400"><HiTrash /></button>
-                                        <input type="text" value={cat.category} onChange={(e) => updateMenuCategory(i, e.target.value)} placeholder="Menu Category (e.g. Starters, Main Course)" className={`${inputCls} mb-4 font-bold`} required />
+                                        <div className="flex items-center justify-between mb-3">
+                                            <span className="text-xs font-bold text-accent-emerald uppercase tracking-wider">Category {i + 1}</span>
+                                            <button type="button" onClick={() => removeMenuCategory(i)} className="flex items-center gap-1 text-text-muted hover:text-red-400 text-xs"><HiTrash /> Remove Category</button>
+                                        </div>
+                                        <div className="mb-4">
+                                            <label className="text-xs text-text-muted mb-1 block">Category Name *</label>
+                                            <input type="text" value={cat.category} onChange={(e) => updateMenuCategory(i, e.target.value)} placeholder="e.g. Starters, Main Course, Desserts, Beverages" className={`${inputCls} font-bold`} required />
+                                        </div>
 
-                                        <div className="space-y-3 pl-4 border-l-2 border-border-default">
+                                        <div className="space-y-3 pl-4 border-l-2 border-accent-emerald/20">
+                                            <p className="text-text-muted/60 text-[10px] uppercase tracking-wider font-semibold">Menu Items</p>
                                             {cat.items.map((item, j) => (
-                                                <div key={j} className="flex gap-2 items-center">
-                                                    <input type="text" value={item.name} onChange={(e) => updateMenuItem(i, j, 'name', e.target.value)} placeholder="Item Name" className="flex-1 px-3 py-2 bg-white/5 border border-border-default rounded-lg text-white text-sm outline-none" required />
-                                                    <input type="number" value={item.price} onChange={(e) => updateMenuItem(i, j, 'price', e.target.value)} placeholder="Price" className="w-20 px-3 py-2 bg-white/5 border border-border-default rounded-lg text-white text-sm outline-none" />
-                                                    <select value={item.isVeg} onChange={(e) => updateMenuItem(i, j, 'isVeg', e.target.value === 'true')} className="px-2 py-2 bg-white/5 border border-border-default rounded-lg text-white text-xs outline-none">
-                                                        <option value="true">Veg</option>
-                                                        <option value="false">Non-Veg</option>
-                                                    </select>
-                                                    <button type="button" onClick={() => removeMenuItem(i, j)} className="text-text-muted hover:text-red-400"><HiX /></button>
+                                                <div key={j} className="flex gap-2 items-end">
+                                                    <div className="flex-1">
+                                                        {j === 0 && <label className="text-[10px] text-text-muted mb-1 block">Item Name</label>}
+                                                        <input type="text" value={item.name} onChange={(e) => updateMenuItem(i, j, 'name', e.target.value)} placeholder="e.g. Paneer Tikka" className="w-full px-3 py-2.5 bg-white/5 border border-border-default rounded-lg text-white text-sm outline-none focus:border-accent-emerald transition-all" required />
+                                                    </div>
+                                                    <div className="w-24">
+                                                        {j === 0 && <label className="text-[10px] text-text-muted mb-1 block">Price (₹)</label>}
+                                                        <input type="number" value={item.price} onChange={(e) => updateMenuItem(i, j, 'price', e.target.value)} placeholder="250" className="w-full px-3 py-2.5 bg-white/5 border border-border-default rounded-lg text-white text-sm outline-none focus:border-accent-emerald transition-all" />
+                                                    </div>
+                                                    <div className="w-24">
+                                                        {j === 0 && <label className="text-[10px] text-text-muted mb-1 block">Type</label>}
+                                                        <select value={item.isVeg} onChange={(e) => updateMenuItem(i, j, 'isVeg', e.target.value === 'true')} className="w-full px-2 py-2.5 bg-white/5 border border-border-default rounded-lg text-white text-xs outline-none focus:border-accent-emerald transition-all">
+                                                            <option value="true" className="bg-bg-card">🟢 Veg</option>
+                                                            <option value="false" className="bg-bg-card">🔴 Non-Veg</option>
+                                                        </select>
+                                                    </div>
+                                                    <button type="button" onClick={() => removeMenuItem(i, j)} className="p-2 text-text-muted hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"><HiX /></button>
                                                 </div>
                                             ))}
-                                            <button type="button" onClick={() => addMenuItem(i)} className="text-xs text-primary-light hover:text-white flex items-center gap-1">+ Add Item</button>
+                                            {cat.items.length === 0 && (
+                                                <p className="text-text-muted/40 text-xs italic py-2">No items added yet. Click the button below to add menu items.</p>
+                                            )}
+                                            <button type="button" onClick={() => addMenuItem(i)} className="flex items-center gap-1.5 px-3 py-2 text-xs text-accent-emerald font-medium hover:text-white border border-dashed border-accent-emerald/30 rounded-lg hover:border-accent-emerald/60 transition-all">
+                                                <HiPlus className="text-sm" /> Add Item to {cat.category || 'this category'}
+                                            </button>
                                         </div>
                                     </div>
                                 ))}
-                                <button type="button" onClick={addMenuCategory} className="flex items-center gap-2 text-primary-light text-sm font-medium hover:text-white transition-colors">
+                                <button type="button" onClick={addMenuCategory} className="flex items-center gap-2 px-4 py-2.5 text-primary-light text-sm font-medium hover:text-white border border-dashed border-primary/30 rounded-xl hover:border-primary/60 transition-all w-full justify-center">
                                     <HiPlus /> Add Menu Category
                                 </button>
                             </div>

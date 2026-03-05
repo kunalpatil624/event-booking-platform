@@ -57,7 +57,7 @@ export default function Hero() {
                 </motion.p>
 
                 <motion.form className="flex items-center bg-bg-card/85 backdrop-blur-xl border border-border-light rounded-3xl p-2 w-full max-w-[780px] shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_60px_rgba(108,60,225,0.1)] mb-12 max-md:flex-col max-md:gap-0 max-md:p-3 max-md:rounded-2xl" onSubmit={handleSearch} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.6 }}>
-                    <div className="flex-1 flex items-center gap-2.5 px-4 py-2 max-md:w-full max-md:border-b max-md:border-border-default max-md:px-3 max-md:py-2.5">
+                    <div className="flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2 max-md:w-full max-md:border-b max-md:border-border-default max-md:px-3 max-md:py-2.5">
                         <HiLocationMarker className="text-xl text-primary-light shrink-0" />
                         <select value={city} onChange={(e) => setCity(e.target.value)} className="flex-1 bg-transparent border-none text-white text-sm py-1.5 outline-none [&>option]:bg-bg-card [&>option]:text-white">
                             <option value="">Select City</option>
@@ -65,7 +65,7 @@ export default function Hero() {
                         </select>
                     </div>
                     <div className="w-px h-8 bg-border-default shrink-0 max-md:hidden" />
-                    <div className="flex-1 flex items-center gap-2.5 px-4 py-2 max-md:w-full max-md:border-b max-md:border-border-default max-md:px-3 max-md:py-2.5">
+                    <div className="flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2 max-md:w-full max-md:border-b max-md:border-border-default max-md:px-3 max-md:py-2.5">
                         <HiCalendar className="text-xl text-primary-light shrink-0" />
                         <select value={occasion} onChange={(e) => setOccasion(e.target.value)} className="flex-1 bg-transparent border-none text-white text-sm py-1.5 outline-none [&>option]:bg-bg-card [&>option]:text-white">
                             <option value="">Occasion</option>
@@ -73,16 +73,16 @@ export default function Hero() {
                         </select>
                     </div>
                     <div className="w-px h-8 bg-border-default shrink-0 max-md:hidden" />
-                    <div className="flex-1 flex items-center gap-2.5 px-4 py-2 max-md:w-full max-md:border-b max-md:border-border-default max-md:px-3 max-md:py-2.5">
+                    <div className="flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2 max-md:w-full max-md:border-b max-md:border-border-default max-md:px-3 max-md:py-2.5">
                         <HiCalendar className="text-xl text-primary-light shrink-0" />
                         <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="flex-1 bg-transparent border-none text-white text-sm py-1.5 outline-none [color-scheme:dark]" />
                     </div>
                     <div className="w-px h-8 bg-border-default shrink-0 max-md:hidden" />
-                    <div className="flex-1 flex items-center gap-2.5 px-4 py-2 max-md:w-full max-md:px-3 max-md:py-2.5">
+                    <div className="flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2 max-md:w-full max-md:px-3 max-md:py-2.5">
                         <HiUsers className="text-xl text-primary-light shrink-0" />
                         <input type="number" placeholder="Guest Count" value={guests} onChange={(e) => setGuests(e.target.value)} min="1" className="flex-1 bg-transparent border-none text-white text-sm py-1.5 outline-none placeholder:text-text-muted" />
                     </div>
-                    <button type="submit" className="flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-primary to-primary-light text-white text-sm font-semibold border-none rounded-[18px] whitespace-nowrap shadow-[0_4px_20px_rgba(108,60,225,0.4)] hover:-translate-y-0.5 hover:shadow-[0_6px_30px_rgba(108,60,225,0.5)] transition-all duration-300 max-md:w-full max-md:justify-center max-md:mt-1 max-md:rounded-xl">
+                    <button type="submit" className="shrink-0 flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-light text-white text-sm font-semibold border-none rounded-2xl whitespace-nowrap shadow-[0_4px_20px_rgba(108,60,225,0.4)] hover:-translate-y-0.5 hover:shadow-[0_6px_30px_rgba(108,60,225,0.5)] transition-all duration-300 max-md:w-full max-md:justify-center max-md:mt-1 max-md:rounded-xl">
                         <HiSearch />
                         <span>Search</span>
                     </button>
