@@ -121,6 +121,10 @@ venueSchema.virtual('reviews', {
 
 venueSchema.pre('save', function (next) {
     this.slug = this.name.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-');
+    // Normalize city name: trim and capitalize first letter of each word
+    if (this.city) {
+        this.city = this.city.trim().replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+    }
     next();
 });
 

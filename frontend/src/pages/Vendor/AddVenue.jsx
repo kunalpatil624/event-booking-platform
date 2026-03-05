@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { HiArrowLeft, HiOfficeBuilding, HiLocationMarker, HiCurrencyRupee, HiUsers, HiPhotograph, HiCheck, HiPlus, HiTrash, HiX } from 'react-icons/hi';
-import { useVenueActions } from '../../hooks/useVenues';
+import { useVenueActions, useCities } from '../../hooks/useVenues';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -42,9 +42,11 @@ export default function AddVenue() {
     const { id: venueId } = useParams();
     const isEditMode = Boolean(venueId);
     const { createVenue, updateVenue, uploadImages } = useVenueActions();
+    const availableCities = useCities();
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [fetchingVenue, setFetchingVenue] = useState(false);
+    const [isCustomCity, setIsCustomCity] = useState(false);
     const [formData, setFormData] = useState({ ...emptyFormData });
 
     // Fetch venue data when editing
@@ -100,6 +102,16 @@ export default function AddVenue() {
             fetchVenue();
         }
     }, [isEditMode, venueId]);
+
+    // In edit mode, if venue city is not in available cities -> show custom input
+    useEffect(() => {
+        if (isEditMode && formData.city && availableCities.length > 0) {
+            const cityExists = availableCities.some(c => c.toLowerCase() === formData.city.toLowerCase());
+            if (!cityExists) {
+                setIsCustomCity(true);
+            }
+        }
+    }, [isEditMode, formData.city, availableCities]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -358,7 +370,23 @@ export default function AddVenue() {
                                 Location
                             </h3>
                             <div className="grid grid-cols-2 max-md:grid-cols-1 gap-6">
-                                <div><label className={labelCls}>City</label><input type="text" name="city" value={formData.city} onChange={handleChange} className={inputCls} required /></div>
+                                <div>
+                                    <label className={labelCls}>City</label>
+                                    {isCustomCity ? (
+                                        <div className="flex gap-2">
+                                            <input type="text" name="city" value={formData.city} onChange={handleChange} className={`${inputCls} flex-1`} placeholder="Enter city name" required />
+                                            <button type="button" onClick={() => { setIsCustomCity(false); setFormData(prev => ({ ...prev, city: '' })); }} className="px-3 py-2 text-text-muted hover:text-white border border-border-default rounded-xl text-xs transition-all">
+                                                <HiX />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <select name="city" value={formData.city} onChange={(e) => { if (e.target.value === '__other__') { setIsCustomCity(true); setFormData(prev => ({ ...prev, city: '' })); } else { setFormData(prev => ({ ...prev, city: e.target.value })); } }} className={inputCls} required>
+                                            <option value="" className="bg-bg-card">Select City</option>
+                                            {availableCities.map(c => <option key={c} value={c} className="bg-bg-card">{c}</option>)}
+                                            <option value="__other__" className="bg-bg-card">+ Other (Add New City)</option>
+                                        </select>
+                                    )}
+                                </div>
                                 <div><label className={labelCls}>Area</label><input type="text" name="area" value={formData.area} onChange={handleChange} className={inputCls} required /></div>
                                 <div className="col-span-2"><label className={labelCls}>Full Address</label><input type="text" name="address" value={formData.address} onChange={handleChange} className={inputCls} required /></div>
                             </div>

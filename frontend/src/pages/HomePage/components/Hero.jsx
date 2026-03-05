@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { HiSearch, HiLocationMarker, HiCalendar, HiUsers, HiSparkles } from 'react-icons/hi';
-
-const cities = ['Bhopal', 'Indore', 'Jabalpur', 'Gwalior', 'Ujjain', 'Sagar', 'Rewa', 'Satna'];
+import { useCities } from '../../../hooks/useVenues';
 const occasions = ['Wedding', 'Reception', 'Engagement', 'Birthday', 'Corporate', 'Conference', 'Party', 'Anniversary'];
 
 export default function Hero() {
     const navigate = useNavigate();
+    const cities = useCities();
     const [city, setCity] = useState('');
     const [occasion, setOccasion] = useState('');
     const [guests, setGuests] = useState('');
